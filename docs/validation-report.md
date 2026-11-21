@@ -28,6 +28,8 @@ The exact APK hash, signing certificate and CI runs for each release are in its 
 | `gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest` with `SAMFORD_IT_API_BASE=http://127.0.0.1:4320/api/mobile/v1` | BUILD SUCCESSFUL; **70 tests, 0 failures** at v0.1.1 (69 at v0.1.0); the env-gated fixture generator is skipped |
 | Same with `SAMFORD_E2E_OUT` set | `crossAppE2EProducer` passed against dffde17 |
 | Lint (`lintDebug`) | `No issues found.` |
+| `scripts/build-release.ps1` at b31c7e9 (`v0.1.1` tag) | `samford-doctor-v0.1.1.apk`, 9,561,548 bytes, SHA-256 `1a792dfc185f8e56536d5e18ed31353b8a9be675843e05115b5e396c070926f5` (the public release download matches); `apksigner verify` OK (v2); certificate SHA-256 `bfa405d4b39ea308b5cb60538418a89b35ea35cadad27c20b57665692ba7f326`, same as v0.1.0 |
+| `aapt2 dump badging` (v0.1.1) | `com.samford.doctor`, versionCode 2, versionName 0.1.1, minSdk 33, targetSdk 36, no `debuggable` in the manifest |
 | `scripts/build-release.ps1` at 3c1c1e6 (R8, resource shrinking, Baseline Profile, signed) | `samford-doctor-v0.1.0.apk`, 9,561,552 bytes, SHA-256 `5680e7464b72165aadbdb85373aabe02ce4979b1ba9d0fd72a9dfb3577ff94be`; `apksigner verify` OK (v2); certificate SHA-256 `bfa405d4b39ea308b5cb60538418a89b35ea35cadad27c20b57665692ba7f326` |
 | `aapt2 dump badging` (v0.1.0) | `com.samford.doctor`, versionCode 1, versionName 0.1.0, minSdk 33, targetSdk 36, not debuggable |
 | Live discovery (temporary read-only Robolectric check, removed after use) | the app's `ServerRepository` went `Online(source=DISCOVERY)` via the gist and loaded personas doctor-a/b/c from the live server |
@@ -69,7 +71,12 @@ fail on the previous code and pass on the fix.
 
 ## GitHub Actions
 
-Final commit **3c1c1e6** (the release source):
+v0.1.1, tagged commit **b31c7e9**:
+
+- [Android CI 44884527177](https://github.com/shivam098/samford-doctor-android/actions/runs/44884527177): success.
+- [Tablet emulator tests 44884527095](https://github.com/shivam098/samford-doctor-android/actions/runs/44884527095): API 35 passed in attempt 1. In attempt 1 the API 34 job **hung for 55 minutes and was cancelled**: the release smoke had passed, then in the offline journey the activity was recreated when airplane mode switched on, and afterwards the app process logged only continuous "blocking GC Alloc" on the main and test threads, consistent with a main thread that never went idle, so the Compose test's idle wait never returned. No crash, ANR or stack trace was recorded. The same commit's API 34 job **passed on rerun (attempt 2)** in 8 minutes, and the code differs from the twice-green 390d681 only in versionCode/versionName. Treated as an emulator stall, recorded here because it is not explained.
+
+v0.1.0, commit **3c1c1e6**:
 
 - [Android CI 44878227479](https://github.com/shivam098/samford-doctor-android/actions/runs/44878227479): success — build, lint, all JVM tests incl. the real-backend integration tests and the cross-app producer against dffde17, R8 release build.
 - [Tablet emulator tests 44878227590](https://github.com/shivam098/samford-doctor-android/actions/runs/44878227590): success on **API 34 and API 35** Pixel Tablet AVDs, shipping (automatic) ink path, **0 native crashes** in all logcats:
