@@ -44,6 +44,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -89,7 +90,7 @@ fun ReviewScreen(vm: AppViewModel, visitId: String) {
     val followUp by session.followUp.collectAsStateWithLifecycle()
     val settings by vm.settings.collectAsStateWithLifecycle()
     var completing by remember { mutableStateOf(false) }
-    var confirm by remember { mutableStateOf(false) }
+    var confirm by rememberSaveable { mutableStateOf(false) }
     var selected by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
 

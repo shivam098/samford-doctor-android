@@ -3,8 +3,10 @@ package com.samford.doctor
 import android.os.SystemClock
 import android.view.InputDevice
 import android.view.MotionEvent
+import android.view.View
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
+import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -33,8 +35,9 @@ import java.util.concurrent.CopyOnWriteArrayList
 class InkDeviceTest {
     private val header = PageHeader("Device Test (Synthetic)", "30 / F", "DEMO-T", "21 Nov 2026", "1", "V-T", "Dr Test", "MBBS", "T-1", "Medicine", "None recorded", false, "—", true)
 
-    @Test
-    fun jetpackInkPathTakesStylusInputAndHandsOffToTheDryLayer() {
+    private class Harness(val scenario: ActivityScenario<ComponentActivity>, val view: InkSurfaceView, val strokes: List<InkStroke>)
+
+    private fun launch(): Harness {
         val strokes = CopyOnWriteArrayList<InkStroke>()
         lateinit var view: InkSurfaceView
         // ComponentActivity is declared in the debug app by compose-ui-test-manifest.
@@ -57,30 +60,71 @@ class InkDeviceTest {
             }
         }
         InstrumentationRegistry.getInstrumentation().waitForIdleSync()
-        scenario.onActivity {
-            assertTrue("Jetpack Ink should be active on a device", view.isLowLatencyInk)
-            view.setContent("p1", PageSpec(DocType.PRESCRIPTION, "Prescription", header, 1, 1, "V-T-RX"), InkPage(0), null)
-            val down = SystemClock.uptimeMillis()
-            val y = view.height * 0.6f
-            fun ev(action: Int, x: Float, t: Long): MotionEvent {
-                val p = MotionEvent.PointerProperties().apply { id = 0; toolType = MotionEvent.TOOL_TYPE_STYLUS }
-                val c = MotionEvent.PointerCoords().apply { this.x = x; this.y = y; pressure = 0.6f }
-                return MotionEvent.obtain(down, t, action, 1, arrayOf(p), arrayOf(c), 0, 0, 1f, 1f, 0, 0, InputDevice.SOURCE_STYLUS, 0)
-            }
-            view.dispatchTouchEvent(ev(MotionEvent.ACTION_DOWN, 200f, down))
-            for (i in 1..20) view.dispatchTouchEvent(ev(MotionEvent.ACTION_MOVE, 200f + i * 15f, down + i * 8))
-            view.dispatchTouchEvent(ev(MotionEvent.ACTION_UP, 500f, down + 170))
+        return Harness(scenario, view, strokes)
+    }
+
+    /** One S Pen stroke (TOOL_TYPE_STYLUS, SOURCE_STYLUS, pressure) dispatched to the surface. */
+    private fun penStroke(h: Harness) = h.scenario.onActivity {
+        val view = h.view
+        view.setContent("p1", PageSpec(DocType.PRESCRIPTION, "Prescription", header, 1, 1, "V-T-RX"), InkPage(0), null)
+        val down = SystemClock.uptimeMillis()
+        val y = view.height * 0.6f
+        fun ev(action: Int, x: Float, t: Long): MotionEvent {
+            val p = MotionEvent.PointerProperties().apply { id = 0; toolType = MotionEvent.TOOL_TYPE_STYLUS }
+            val c = MotionEvent.PointerCoords().apply { this.x = x; this.y = y; pressure = 0.6f }
+            return MotionEvent.obtain(down, t, action, 1, arrayOf(p), arrayOf(c), 0, 0, 1f, 1f, 0, 0, InputDevice.SOURCE_STYLUS, 0)
         }
-        assertEquals(1, strokes.size)
-        // The wet stroke is handed to the dry layer once Jetpack Ink finishes it.
+        view.dispatchTouchEvent(ev(MotionEvent.ACTION_DOWN, 200f, down))
+        for (i in 1..20) view.dispatchTouchEvent(ev(MotionEvent.ACTION_MOVE, 200f + i * 15f, down + i * 8))
+        view.dispatchTouchEvent(ev(MotionEvent.ACTION_UP, 500f, down + 170))
+    }
+
+    private fun waitForHandOff(h: Harness): Boolean {
         val deadline = SystemClock.uptimeMillis() + 5_000
         var pending = true
         while (pending && SystemClock.uptimeMillis() < deadline) {
-            scenario.onActivity { pending = view.pageView.pendingWet.isNotEmpty() }
+            h.scenario.onActivity { pending = h.view.pageView.pendingWet.isNotEmpty() }
             Thread.sleep(50)
         }
-        assertTrue("wet stroke never handed off", !pending)
-        scenario.close()
+        return !pending
+    }
+
+    /** Removes the surface before the activity goes away so teardown never races the ink layer. */
+    private fun close(h: Harness) {
+        h.scenario.onActivity { it.setContentView(View(it)) }
+        InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+        h.scenario.close()
+    }
+
+    @Test
+    fun jetpackInkPathTakesStylusInputAndHandsOffToTheDryLayer() {
+        val h = launch()
+        try {
+            h.scenario.onActivity { assertTrue("Jetpack Ink should be active on a device", h.view.isLowLatencyInk) }
+            penStroke(h)
+            assertEquals(1, h.strokes.size)
+            // The wet stroke is handed to the dry layer once Jetpack Ink finishes it.
+            assertTrue("wet stroke never handed off", waitForHandOff(h))
+        } finally {
+            close(h)
+        }
+    }
+
+    @Test
+    fun backgroundingRightAfterAStrokeKeepsTheSurfaceWorking() {
+        val h = launch()
+        try {
+            penStroke(h)
+            // The doctor lifts the pen and immediately switches app, then comes back.
+            h.scenario.moveToState(Lifecycle.State.CREATED)
+            h.scenario.moveToState(Lifecycle.State.RESUMED)
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+            assertTrue("wet stroke never handed off after returning", waitForHandOff(h))
+            penStroke(h)
+            assertEquals(2, h.strokes.size)
+        } finally {
+            close(h)
+        }
     }
 
     @Test

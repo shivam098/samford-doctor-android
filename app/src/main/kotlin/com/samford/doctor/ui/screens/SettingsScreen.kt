@@ -29,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,7 +51,7 @@ import com.samford.doctor.ui.Screen
 fun SettingsScreen(vm: AppViewModel, container: AppContainer) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val server by vm.server.collectAsStateWithLifecycle()
-    var manualUrl by remember { mutableStateOf(settings?.manualUrl.orEmpty()) }
+    var manualUrl by rememberSaveable { mutableStateOf(settings?.manualUrl.orEmpty()) }
     val context = LocalContext.current
     val canLock = (context as? MainActivity)?.canAuthenticate() == true
     Scaffold(

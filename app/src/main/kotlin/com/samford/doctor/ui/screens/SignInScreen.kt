@@ -38,6 +38,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,7 +68,7 @@ fun SignInScreen(vm: AppViewModel) {
     val personas by vm.personas.collectAsStateWithLifecycle()
     val server by vm.server.collectAsStateWithLifecycle()
     val busy by vm.busy.collectAsStateWithLifecycle()
-    var manualUrl by remember { mutableStateOf("") }
+    var manualUrl by rememberSaveable { mutableStateOf("") }
     Column(Modifier.fillMaxSize()) {
         SyntheticBanner(Modifier.fillMaxWidth())
         if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())

@@ -98,6 +98,10 @@ class OfflineVisitFlowTest {
         compose.onNodeWithTag("ink-surface").performTouchInput { click(Offset(width * 0.2f, height * 0.6f)) }
         compose.onNodeWithTag("tool-stamps").performScrollTo().performClick()
         waitForTag("stamp-1-0-1")
+        // Relaunch mid-visit (font size, keyboard cover, locale): same visit, same document, sheet still open.
+        compose.activityRule.scenario.recreate()
+        waitForTag("ink-surface")
+        waitForTag("stamp-1-0-1")
         compose.onNodeWithTag("stamp-1-0-1").performClick()
         compose.onNodeWithTag("ink-surface").performTouchInput { click(Offset(width * 0.55f, height * 0.6f)) }
         compose.waitForIdle()

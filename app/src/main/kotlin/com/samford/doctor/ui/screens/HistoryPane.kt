@@ -33,6 +33,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,7 +63,7 @@ import com.samford.doctor.ui.theme.SamfordBlue
 @Composable
 fun HistoryPane(session: VisitSession, modifier: Modifier) {
     val history by session.history.collectAsStateWithLifecycle()
-    var enlarged by remember { mutableStateOf<String?>(null) }
+    var enlarged by rememberSaveable { mutableStateOf<String?>(null) }
     Column(modifier.background(MaterialTheme.colorScheme.surface).padding(8.dp).testTag("history-pane")) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.history_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))

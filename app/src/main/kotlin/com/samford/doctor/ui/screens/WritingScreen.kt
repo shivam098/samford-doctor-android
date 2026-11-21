@@ -64,6 +64,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -148,7 +149,8 @@ fun WritingScreen(
     val tool by session.tool.collectAsStateWithLifecycle()
     val showHistory by session.showHistory.collectAsStateWithLifecycle()
     val labs by session.labs.collectAsStateWithLifecycle()
-    var stampSheet by remember { mutableStateOf(false) }
+    // Saveable: the activity can be relaunched mid-visit (font size, keyboard cover, locale).
+    var stampSheet by rememberSaveable { mutableStateOf(false) }
     val doc = state.currentDoc
 
     Scaffold(

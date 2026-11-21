@@ -46,6 +46,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -85,7 +86,7 @@ fun QueueScreen(vm: AppViewModel, onRequestNotifications: () -> Unit) {
     val server by vm.server.collectAsStateWithLifecycle()
     val busy by vm.busy.collectAsStateWithLifecycle()
     var confirm by remember { mutableStateOf<QueueEntry?>(null) }
-    var walkIn by remember { mutableStateOf(false) }
+    var walkIn by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         onRequestNotifications()
@@ -282,9 +283,9 @@ private fun statusColor(status: QueueStatus) = when (status) {
 
 @Composable
 private fun WalkInDialog(onDismiss: () -> Unit, onAdd: (String, Int?, String) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var age by remember { mutableStateOf("") }
-    var sex by remember { mutableStateOf("Female") }
+    var name by rememberSaveable { mutableStateOf("") }
+    var age by rememberSaveable { mutableStateOf("") }
+    var sex by rememberSaveable { mutableStateOf("Female") }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.walkin_title)) },

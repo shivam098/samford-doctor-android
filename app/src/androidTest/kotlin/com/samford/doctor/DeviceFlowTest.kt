@@ -97,6 +97,10 @@ class DeviceFlowTest {
         write(2)
         compose.onNodeWithTag("tool-stamps").performScrollTo().performClick()
         waitForTag("stamp-1-0-1")
+        // A relaunch mid-visit (font size, keyboard cover, locale) must keep the doctor exactly where they were.
+        compose.activityRule.scenario.recreate()
+        waitForTag("ink-surface")
+        waitForTag("stamp-1-0-1")
         compose.onNodeWithTag("stamp-1-0-1").performClick()
         compose.onNodeWithTag("ink-surface").performTouchInput { click(Offset(width * 0.6f, height * 0.6f)) }
         shot("03-writing")
