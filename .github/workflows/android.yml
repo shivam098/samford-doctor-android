@@ -1,0 +1,105 @@
+name: Android CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Mock hospital backend (shivam098/samford-web-app) pinned to the M2 contract commit.
+  BACKEND_SHA: 83be4ae028d9f995cd96cbdf00b430ea61bc3795
+  BACKEND_PORT: "4320"
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Start isolated mock backend
+        run: |
+          git clone --quiet https://github.com/shivam098/samford-web-app.git "$RUNNER_TEMP/backend"
+          cd "$RUNNER_TEMP/backend"
+          git checkout --quiet "$BACKEND_SHA"
+          npm ci --no-audit --no-fund
+          nohup npm run mobile:isolated -- --port "$BACKEND_PORT" --data "$RUNNER_TEMP/samford-db" --reset --relaxed-limits --test-support > "$RUNNER_TEMP/backend.log" 2>&1 &
+          for i in $(seq 1 60); do
+            curl -fsS "http://127.0.0.1:$BACKEND_PORT/api/mobile/v1/meta" && break
+            sleep 2
+          done
+          curl -fsS "http://127.0.0.1:$BACKEND_PORT/api/mobile/v1/meta"
+
+      - name: Unit, Robolectric, UI-flow and backend integration tests
+        env:
+          SAMFORD_IT_API_BASE: http://127.0.0.1:4320/api/mobile/v1
+          SAMFORD_E2E_OUT: ${{ runner.temp }}/e2e/doctor-e2e.json
+          SAMFORD_SEED_OUT: ${{ runner.temp }}/seed-fixtures
+        run: ./gradlew --no-daemon :app:testDebugUnitTest
+
+      - name: Lint
+        run: ./gradlew --no-daemon :app:lintDebug
+
+      - name: Build debug and release (R8, unsigned) APKs
+        run: ./gradlew --no-daemon :app:assembleDebug :app:assembleRelease :app:assembleDebugAndroidTest
+
+      - name: Test summary
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          t = f = s = 0
+          for p in glob.glob("app/build/test-results/testDebugUnitTest/*.xml"):
+              r = ET.parse(p).getroot()
+              t += int(r.get("tests", 0)); f += int(r.get("failures", 0)) + int(r.get("errors", 0)); s += int(r.get("skipped", 0))
+          line = f"Unit/Robolectric/integration tests: {t} run, {f} failed, {s} skipped"
+          print(line)
+          open(__import__("os").environ["GITHUB_STEP_SUMMARY"], "a").write(line + "\n")
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-reports
+          path: |
+            app/build/reports/tests/
+            app/build/test-results/
+            app/build/reports/lint-results-debug.html
+            ${{ runner.temp }}/backend.log
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: roborazzi-screenshots
+          path: app/build/outputs/roborazzi/
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cross-app-e2e-and-seed-fixtures
+          path: |
+            ${{ runner.temp }}/e2e/
+            ${{ runner.temp }}/seed-fixtures/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apks
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/release/*.apk
