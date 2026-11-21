@@ -70,6 +70,11 @@ class DeviceFlowTest {
             runBlocking { app.container.server.setManualUrl(apiBase) }
             compose.waitUntil(30_000) { compose.onAllNodes(androidx.compose.ui.test.hasText("Check again")).fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText("Check again").performClick()
+        } else {
+            // Stay offline even when the published discovery says the hospital server is online.
+            runBlocking { app.container.server.setManualUrl("http://127.0.0.1:9") }
+            compose.waitUntil(30_000) { compose.onAllNodes(androidx.compose.ui.test.hasText("Check again")).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText("Check again").performClick()
         }
         val persona = if (apiBase != null) "persona-doctor-a" else "persona-demo-dr-asha"
         compose.waitUntil(30_000) {

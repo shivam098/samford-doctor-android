@@ -30,6 +30,13 @@ interface WetInkLayer {
     fun end(event: MotionEvent, pointerIndex: Int, onHandOff: () -> Unit)
     fun cancel(event: MotionEvent?)
 
+    /**
+     * Called when the window is hidden (app switch, screen off) or shown again. Hidden: finished
+     * strokes are handed to the dry layer at once and the front-buffered layer is hidden, before the
+     * platform tears the window surface down.
+     */
+    fun setHostVisible(visible: Boolean) = Unit
+
     companion object {
         fun create(context: Context, viewport: Viewport): WetInkLayer {
             if (!JetpackInkWetLayer.isSupported()) return FallbackWetLayer(context, viewport)
@@ -92,6 +99,21 @@ class JetpackInkWetLayer(context: Context) : WetInkLayer, InProgressStrokesFinis
         // Draw into the dry layer and remove the wet copies in the same frame (no flicker).
         strokes.keys.forEach { handOffs.remove(it)?.invoke() }
         ink.removeFinishedStrokes(strokes.keys)
+    }
+
+    override fun setHostVisible(visible: Boolean) {
+        if (visible) {
+            ink.visibility = View.VISIBLE
+            return
+        }
+        current?.let { ink.cancelStroke(it, null) }
+        current = null
+        // Every stroke here is already committed to the record; let the dry layer draw them now.
+        val pending = handOffs.values.toList()
+        handOffs.clear()
+        pending.forEach { it() }
+        ink.removeFinishedStrokes(ink.getFinishedStrokes().keys)
+        ink.visibility = View.INVISIBLE
     }
 
     companion object {

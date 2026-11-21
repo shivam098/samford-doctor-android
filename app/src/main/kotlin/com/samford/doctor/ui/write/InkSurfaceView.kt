@@ -124,6 +124,12 @@ class InkSurfaceView(context: Context) : FrameLayout(context) {
         viewport.setViewSize(w, h)
     }
 
+    // Dispatched before the window surface is destroyed on app switch or screen off.
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        wet.setHostVisible(visibility == VISIBLE)
+    }
+
     override fun onInterceptTouchEvent(ev: MotionEvent): Boolean = true
 
     private fun pointerTool(e: MotionEvent, index: Int): PointerTool = when (e.getToolType(index)) {
