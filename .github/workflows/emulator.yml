@@ -73,30 +73,20 @@ jobs:
           emulator-options: -no-window -gpu ${{ matrix.gpu }} -noaudio -no-boot-anim -camera-back none
           script: |
             mkdir -p artifacts
-            adb install -r release-smoke.apk
-            adb logcat -c
-            adb shell am start -W -n com.samford.doctor/.MainActivity
-            sleep 30
-            adb shell uiautomator dump /sdcard/release-ui.xml || (sleep 5; adb shell uiautomator dump /sdcard/release-ui.xml) || true
-            adb pull /sdcard/release-ui.xml artifacts/release-ui.xml || true
-            adb shell screencap -p /sdcard/release.png; adb pull /sdcard/release.png artifacts/release-smoke.png || true
-            adb logcat -d > artifacts/release-logcat.txt
-            adb shell pidof com.samford.doctor > artifacts/release-pid.txt || echo "release app is not running" > artifacts/release.failed
-            if grep -q "Process: com.samford.doctor," artifacts/release-logcat.txt; then echo "release app crashed" > artifacts/release.failed; fi
-            if ! grep -Eq "Demo doctor A|Asha Verma" artifacts/release-ui.xml; then echo "release sign-in screen did not show doctors" > artifacts/release.failed; fi
-            adb uninstall com.samford.doctor || true
+            bash scripts/ci/release-smoke.sh release-smoke.apk artifacts || echo "release smoke: script exited non-zero" >> artifacts/release.failed
             adb shell "nohup screenrecord --time-limit 175 /sdcard/offline.mp4 > /dev/null 2>&1 &"
-            ./gradlew --no-daemon :app:connectedDebugAndroidTest -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true -Pandroid.testInstrumentationRunnerArguments.samfordWetInk=${{ matrix.wetInk }} || echo "offline run failed" > artifacts/offline.failed
+            ./gradlew --no-daemon :app:connectedDebugAndroidTest -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true -Pandroid.testInstrumentationRunnerArguments.samfordWetInk=${{ matrix.wetInk }} || echo "offline run failed" >> artifacts/offline.failed
             cp -r app/build/outputs/androidTest-results artifacts/offline-test-results || true
             grep -rl "Fatal signal" artifacts/offline-test-results > artifacts/offline-native-crashes.txt || true
             sleep 3; adb pull /sdcard/offline.mp4 artifacts/offline.mp4 || true
             adb pull /sdcard/Android/data/com.samford.doctor.debug/files/screens artifacts/offline-screens || true
             adb uninstall com.samford.doctor.debug || true
             adb shell "nohup screenrecord --time-limit 175 /sdcard/online.mp4 > /dev/null 2>&1 &"
-            ./gradlew --no-daemon :app:connectedDebugAndroidTest -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true -Pandroid.testInstrumentationRunnerArguments.samfordApiBase=http://10.0.2.2:4320/api/mobile/v1 -Pandroid.testInstrumentationRunnerArguments.samfordWetInk=${{ matrix.wetInk }} -Pandroid.testInstrumentationRunnerArguments.class=com.samford.doctor.DeviceFlowTest || echo "online run failed" > artifacts/online.failed
+            ./gradlew --no-daemon :app:connectedDebugAndroidTest -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true -Pandroid.testInstrumentationRunnerArguments.samfordApiBase=http://10.0.2.2:4320/api/mobile/v1 -Pandroid.testInstrumentationRunnerArguments.samfordWetInk=${{ matrix.wetInk }} -Pandroid.testInstrumentationRunnerArguments.class=com.samford.doctor.DeviceFlowTest || echo "online run failed" >> artifacts/online.failed
             grep -rl "Fatal signal" app/build/outputs/androidTest-results > artifacts/online-native-crashes.txt || true
             sleep 3; adb pull /sdcard/online.mp4 artifacts/online.mp4 || true
             adb pull /sdcard/Android/data/com.samford.doctor.debug/files/screens artifacts/online-screens || true
+            cat artifacts/*.failed 2>/dev/null || true
             test ! -f artifacts/release.failed && test ! -f artifacts/offline.failed && test ! -f artifacts/online.failed
 
       - uses: actions/upload-artifact@v4
