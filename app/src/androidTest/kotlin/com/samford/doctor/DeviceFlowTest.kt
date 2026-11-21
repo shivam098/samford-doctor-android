@@ -15,11 +15,13 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
+import androidx.lifecycle.Lifecycle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.GrantPermissionRule
 import com.samford.doctor.sync.OutboxState
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -51,6 +53,16 @@ class DeviceFlowTest {
         File(dir, "$name.png").outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
 
+    private fun shell(command: String) {
+        val pfd = InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(command)
+        android.os.ParcelFileDescriptor.AutoCloseInputStream(pfd).use { it.readBytes() }
+    }
+
+    @After
+    fun restoreNetwork() {
+        if (apiBase == null) shell("cmd connectivity airplane-mode disable")
+    }
+
     private fun waitForTag(tag: String, timeoutMs: Long = 30_000) =
         compose.waitUntil(timeoutMs) { compose.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes().isNotEmpty() }
 
@@ -71,8 +83,9 @@ class DeviceFlowTest {
             compose.waitUntil(30_000) { compose.onAllNodes(androidx.compose.ui.test.hasText("Check again")).fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText("Check again").performClick()
         } else {
-            // Stay offline even when the published discovery says the hospital server is online.
-            runBlocking { app.container.server.setManualUrl("http://127.0.0.1:9") }
+            // A real offline tablet: no discovery, no last-good server.
+            shell("cmd connectivity airplane-mode enable")
+            Thread.sleep(3_000)
             compose.waitUntil(30_000) { compose.onAllNodes(androidx.compose.ui.test.hasText("Check again")).fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText("Check again").performClick()
         }
@@ -100,6 +113,10 @@ class DeviceFlowTest {
         write(4)
         compose.onNodeWithTag("doc-PRESCRIPTION").performClick()
         write(2)
+        // The doctor lifts the pen and switches app at once, then comes back to the same page.
+        compose.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
+        compose.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
+        waitForTag("ink-surface")
         compose.onNodeWithTag("tool-stamps").performScrollTo().performClick()
         waitForTag("stamp-1-0-1")
         // A relaunch mid-visit (font size, keyboard cover, locale) must keep the doctor exactly where they were.

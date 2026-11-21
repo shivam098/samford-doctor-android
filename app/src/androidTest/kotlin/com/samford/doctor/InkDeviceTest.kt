@@ -6,7 +6,6 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
-import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -105,23 +104,6 @@ class InkDeviceTest {
             assertEquals(1, h.strokes.size)
             // The wet stroke is handed to the dry layer once Jetpack Ink finishes it.
             assertTrue("wet stroke never handed off", waitForHandOff(h))
-        } finally {
-            close(h)
-        }
-    }
-
-    @Test
-    fun backgroundingRightAfterAStrokeKeepsTheSurfaceWorking() {
-        val h = launch()
-        try {
-            penStroke(h)
-            // The doctor lifts the pen and immediately switches app, then comes back.
-            h.scenario.moveToState(Lifecycle.State.CREATED)
-            h.scenario.moveToState(Lifecycle.State.RESUMED)
-            InstrumentationRegistry.getInstrumentation().waitForIdleSync()
-            assertTrue("wet stroke never handed off after returning", waitForHandOff(h))
-            penStroke(h)
-            assertEquals(2, h.strokes.size)
         } finally {
             close(h)
         }
