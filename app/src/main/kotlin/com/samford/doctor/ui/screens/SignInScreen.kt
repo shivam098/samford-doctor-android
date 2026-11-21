@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -69,8 +71,8 @@ fun SignInScreen(vm: AppViewModel) {
     val server by vm.server.collectAsStateWithLifecycle()
     val busy by vm.busy.collectAsStateWithLifecycle()
     var manualUrl by rememberSaveable { mutableStateOf("") }
-    Column(Modifier.fillMaxSize()) {
-        SyntheticBanner(Modifier.fillMaxWidth())
+    Column(Modifier.fillMaxSize().navigationBarsPadding()) {
+        SyntheticBanner(Modifier.fillMaxWidth(), underStatusBar = true)
         if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
         Row(Modifier.fillMaxSize().padding(32.dp), horizontalArrangement = Arrangement.spacedBy(32.dp)) {
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
@@ -160,7 +162,7 @@ fun SignatureScreen(vm: AppViewModel) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     var pad by remember { mutableStateOf<SignaturePadView?>(null) }
     var hasInk by remember { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(Modifier.fillMaxSize().systemBarsPadding().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(stringResource(R.string.signature_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
         Text(stringResource(R.string.signature_hint), style = MaterialTheme.typography.bodyLarge)
         settings?.doctor?.let { Text("${it.name} · ${stringResource(R.string.reg_no, it.registrationNo)}") }
