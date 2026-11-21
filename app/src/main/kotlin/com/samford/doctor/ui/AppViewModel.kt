@@ -83,6 +83,16 @@ class AppViewModel(private val c: AppContainer) : ViewModel() {
             pendingScreen = null
             if (s.doctor == null) loadPersonas()
         }
+        // The server can come online after the sign-in screen loaded the offline list (start-up check,
+        // "Check again", rediscovery): show the hospital's doctors then instead of "Connected" + offline ones.
+        viewModelScope.launch {
+            c.server.status.collect { status ->
+                val list = _personas.value
+                if (status is ServerStatus.Online && list != null && !list.fromServer && current == Screen.SignIn) {
+                    _personas.value = c.session.personas()
+                }
+            }
+        }
     }
 
     val current: Screen? get() = backStack.lastOrNull()

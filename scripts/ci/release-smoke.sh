@@ -71,6 +71,7 @@ fi
 adb shell am start -W -n "$pkg/.MainActivity" || fail "launch failed"
 
 found=0
+mismatch=0
 for attempt in $(seq 1 "$attempts"); do
     sleep "$interval"
     ui="$out/release-ui-$attempt.xml"
@@ -85,6 +86,13 @@ for attempt in $(seq 1 "$attempts"); do
         continue
     fi
     if grep -Eq 'Demo doctor A|Asha Verma' "$ui"; then
+        # Connected to the hospital server must mean the hospital's doctors, not the offline demo list.
+        if grep -q 'text="Connected: ' "$ui" && grep -q 'text="Offline demo"' "$ui"; then
+            mismatch=1
+            echo "release smoke: attempt $attempt: connected but listing offline demo doctors"
+            continue
+        fi
+        mismatch=0
         found=1
         echo "release smoke: sign-in screen with doctors after attempt $attempt"
         break
@@ -100,7 +108,13 @@ adb shell pidof "$pkg" >"$out/release-pid.txt" 2>/dev/null || fail "the app is n
 grep -q "Process: $pkg, PID" "$out/release-logcat.txt" && fail "the app crashed (Java exception in its process)"
 grep -Eq "Cmdline: ${pkg//./\\.}[[:space:]]*$" "$out/release-logcat.txt" && fail "the app crashed (native signal)"
 grep -Eq "ANR in ${pkg//./\\.}([[:space:]]|$)" "$out/release-logcat.txt" && fail "the app stopped responding (ANR in logcat)"
-[ "$found" = 1 ] || fail "the sign-in screen did not list doctors after $attempts attempts"
+if [ "$found" != 1 ]; then
+    if [ "$mismatch" = 1 ]; then
+        fail "the sign-in screen says Connected but still lists only offline demo doctors after $attempts attempts"
+    else
+        fail "the sign-in screen did not list doctors after $attempts attempts"
+    fi
+fi
 
 adb uninstall "$pkg" >/dev/null 2>&1 || true
 [ ! -f "$out/release.failed" ]
