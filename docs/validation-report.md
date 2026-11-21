@@ -1,7 +1,16 @@
-# Validation report — Samford Doctor v0.1.0
+# Validation report — Samford Doctor v0.1.1
 
 Everything below was actually run. Synthetic data only. Compiling is not counted as evidence of
 behaviour; each claim names the test or command that showed it.
+
+## Releases
+
+| Version | versionCode | Source commit | Change |
+|---|---|---|---|
+| v0.1.1 (latest) | 2 | the `v0.1.1` tag | Sign-in shows the hospital's doctors once the server comes online (see "Bugs found"), CI hardening. Same signing key, installs over v0.1.0 keeping all data. |
+| v0.1.0 | 1 | 3c1c1e6 (`v0.1.0` tag) | First test build. |
+
+The exact APK hash, signing certificate and CI runs for each release are in its GitHub release notes and in the table below.
 
 ## Environment
 
@@ -16,11 +25,11 @@ behaviour; each claim names the test or command that showed it.
 
 | Command | Result |
 |---|---|
-| `gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest` with `SAMFORD_IT_API_BASE=http://127.0.0.1:4320/api/mobile/v1` | BUILD SUCCESSFUL; **69 tests, 0 failures, 2 skipped** (the env-gated fixture generator and cross-app producer) |
+| `gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest` with `SAMFORD_IT_API_BASE=http://127.0.0.1:4320/api/mobile/v1` | BUILD SUCCESSFUL; **70 tests, 0 failures** at v0.1.1 (69 at v0.1.0); the env-gated fixture generator is skipped |
 | Same with `SAMFORD_E2E_OUT` set | `crossAppE2EProducer` passed against dffde17 |
 | Lint (`lintDebug`) | `No issues found.` |
 | `scripts/build-release.ps1` at 3c1c1e6 (R8, resource shrinking, Baseline Profile, signed) | `samford-doctor-v0.1.0.apk`, 9,561,552 bytes, SHA-256 `5680e7464b72165aadbdb85373aabe02ce4979b1ba9d0fd72a9dfb3577ff94be`; `apksigner verify` OK (v2); certificate SHA-256 `bfa405d4b39ea308b5cb60538418a89b35ea35cadad27c20b57665692ba7f326` |
-| `aapt2 dump badging` | `com.samford.doctor`, versionCode 1, versionName 0.1.0, minSdk 33, targetSdk 36, not debuggable |
+| `aapt2 dump badging` (v0.1.0) | `com.samford.doctor`, versionCode 1, versionName 0.1.0, minSdk 33, targetSdk 36, not debuggable |
 | Live discovery (temporary read-only Robolectric check, removed after use) | the app's `ServerRepository` went `Online(source=DISCOVERY)` via the gist and loaded personas doctor-a/b/c from the live server |
 | Cross-app (patient app session, its CI) | the patient app found identical page SHA-256 lists, bytes and PDF hashes for every document the producer completed |
 
@@ -39,6 +48,8 @@ behaviour; each claim names the test or command that showed it.
 | `input.InputRouterTest` | 4 | Stylus writes, side button/eraser tip erase, fingers navigate, palm-sized and pen-near touches ignored |
 | `ui.InkSurfaceViewTest` | 11 | Real MotionEvents into the surface: stylus stroke with pressure in page units, highlighter, side-button and eraser-tip erase, lasso polygon, palm while the pen hovers ignored, finger scrolls by default / writes when enabled, two-finger tap undo, ink cannot start on the printed header |
 | `ui.OfflineVisitFlowTest` | 1 | Full offline journey in Compose (sign in → signature → queue → write 3 documents → **activity relaunch with the stamp sheet open** → review → complete → sync status), Roborazzi screenshots reviewed by eye (`docs/screenshots`) |
+| `ui.SignInPersonasTest` | 1 | **When the server comes online after the sign-in screen loaded the offline list, the hospital's doctors replace it** |
+| `ui.InkCapabilityTest` | 2 | Software GL renderers (SwiftShader, ANGLE-on-SwiftShader, llvmpipe) are recognised; low-latency ink needs front-buffer support and a hardware GPU |
 | `integration.BackendIntegrationTest` | 3 | Against the real backend: complete visit, server pages byte-identical to the tablet's, idempotent replay, pharmacy DISPENSED flows back, lab recipient present, addendum v2 keeps v1 page hashes + reason, returning-patient record includes the pages; cross-app producer; seed generator |
 
 Each bold item is a regression test written for a bug found during validation; each was shown to
@@ -53,7 +64,7 @@ fail on the previous code and pass on the fix.
 | Emulator online run | A relaunch mid-visit (system input-device reconfiguration) closed the open stamp sheet | Visit UI state is `rememberSaveable`; navigation/editor were already in the ViewModel |
 | Backend going live | Once online, the app never re-ran discovery, so a moved tunnel stranded it until restart | Foreign error pages / connection failures drop to unreachable → rediscovery |
 | Review screenshot | The patient's page row kept the pharmacy row's scroll position and hid the visit summary | Fresh row per recipient |
-| Release smoke on API 35 (after v0.1.0) | When the sign-in screen's own server check failed at start-up, a later successful check showed "Connected" but kept the offline demo doctors (tapping one would start an offline session while connected) | The doctor list reloads when the server comes online (`SignInPersonasTest`); fixed on main after v0.1.0, workaround in v0.1.0: tap "Check again" |
+| Release smoke on API 35 (after v0.1.0) | When the sign-in screen's own server check failed at start-up, a later successful check showed "Connected" but kept the offline demo doctors (tapping one would start an offline session while connected) | The doctor list reloads when the server comes online (`SignInPersonasTest`); released in v0.1.1. Workaround on v0.1.0: tap "Check again" |
 | Emulator runs | Notification-permission dialog paused the activity during tests; offline run silently went online via the last-good server | Test grants the permission; offline run uses airplane mode |
 
 ## GitHub Actions

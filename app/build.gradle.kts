@@ -29,8 +29,8 @@ android {
         // 36 deliberately: API 37 adds local-network permission rules that would block testers
         // reaching a mock backend on their LAN. Revisit when the backend is on public HTTPS.
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.1.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "DISCOVERY_URL", "\"$discoveryUrl\"")
         buildConfigField("String", "INK_FORMAT", "\"samford-ink/1\"")
