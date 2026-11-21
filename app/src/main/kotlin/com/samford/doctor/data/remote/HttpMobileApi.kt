@@ -50,18 +50,20 @@ class HttpMobileApi(
         return b
     }
 
-    private suspend fun execute(request: Request): Response = try {
-        runInterruptible(Dispatchers.IO) { client.newCall(request).execute() }
+    /**
+     * Executes [request] and runs [handle] on the IO dispatcher: reading a response body is network
+     * I/O too, so it must never happen on the caller's (often main) thread.
+     */
+    private suspend fun <R> call(request: Request, handle: (Response) -> R): R = try {
+        runInterruptible(Dispatchers.IO) { client.newCall(request).execute().use(handle) }
     } catch (e: IOException) {
         throw ApiException(PlainErrors.network())
     }
 
-    private suspend fun <T> send(request: Request, serializer: KSerializer<T>): T {
-        execute(request).use { response ->
-            val body = response.body.string()
-            if (!response.isSuccessful) throw ApiException(errorFrom(response, body))
-            return decode(body, serializer, response.code)
-        }
+    private suspend fun <T> send(request: Request, serializer: KSerializer<T>): T = call(request) { response ->
+        val body = response.body.string()
+        if (!response.isSuccessful) throw ApiException(errorFrom(response, body))
+        decode(body, serializer, response.code)
     }
 
     private fun <T> decode(body: String, serializer: KSerializer<T>, status: Int): T = try {
@@ -89,7 +91,7 @@ class HttpMobileApi(
     }
 
     override suspend fun meta(apiBase: String) {
-        execute(request(url("/meta", apiBase), auth = false).get().build()).use { response ->
+        call(request(url("/meta", apiBase), auth = false).get().build()) { response ->
             if (!response.isSuccessful) throw ApiException(errorFrom(response, response.body.string()))
         }
     }
@@ -121,56 +123,61 @@ class HttpMobileApi(
     private suspend fun <T> conditionalGet(u: HttpUrl, etag: String?, serializer: KSerializer<T>): Conditional<T> {
         val b = request(u).get()
         etag?.let { b.header("If-None-Match", it) }
-        execute(b.build()).use { response ->
-            if (response.code == 304) return Conditional(null, etag, notModified = true)
-            val body = response.body.string()
-            if (!response.isSuccessful) throw ApiException(errorFrom(response, body))
-            return Conditional(decode(body, serializer, response.code), response.header("ETag"), notModified = false)
+        return call(b.build()) { response ->
+            if (response.code == 304) {
+                Conditional<T>(null, etag, notModified = true)
+            } else {
+                val body = response.body.string()
+                if (!response.isSuccessful) throw ApiException(errorFrom(response, body))
+                Conditional(decode(body, serializer, response.code), response.header("ETag"), notModified = false)
+            }
         }
     }
 
-    override suspend fun blobExists(sha256: String): Boolean {
-        execute(request(url("/blobs/$sha256")).head().build()).use { response ->
-            return when {
-                response.isSuccessful -> true
-                response.code == 404 -> false
-                else -> throw ApiException(errorFrom(response, ""))
-            }
+    override suspend fun blobExists(sha256: String): Boolean = call(request(url("/blobs/$sha256")).head().build()) { response ->
+        when {
+            response.isSuccessful -> true
+            response.code == 404 -> false
+            else -> throw ApiException(errorFrom(response, ""))
         }
     }
 
     override suspend fun putBlob(sha256: String, contentType: String, bytes: ByteArray) {
         val req = request(url("/blobs/$sha256")).put(bytes.toRequestBody(contentType.toMediaType())).build()
-        execute(req).use { response ->
+        call(req) { response ->
             if (!response.isSuccessful) throw ApiException(errorFrom(response, response.body.string()))
         }
     }
 
-    override suspend fun getBlob(sha256: String): ByteArray {
-        execute(request(url("/blobs/$sha256")).get().build()).use { response ->
-            if (!response.isSuccessful) throw ApiException(errorFrom(response, response.body.string()))
-            return response.body.bytes()
-        }
+    override suspend fun getBlob(sha256: String): ByteArray = call(request(url("/blobs/$sha256")).get().build()) { response ->
+        if (!response.isSuccessful) throw ApiException(errorFrom(response, response.body.string()))
+        response.body.bytes()
     }
 
     override suspend fun completeVisit(visitId: String, idempotencyKey: String, request: CompleteVisitRequest): CompleteOutcome {
         val body = requestJson.encodeToString(CompleteVisitRequest.serializer(), request)
-        execute(postJson(url("/doctor/visits/${seg(visitId)}/complete"), body, idempotencyKey)).use { response ->
+        return call(postJson(url("/doctor/visits/${seg(visitId)}/complete"), body, idempotencyKey)) { response ->
             val text = response.body.string()
-            missingBlobs(response.code, text)?.let { return CompleteOutcome.MissingBlobs(it) }
-            if (!response.isSuccessful) throw ApiException(errorFrom(response, text))
-            return CompleteOutcome.Accepted(decode(text, CompleteVisitResponse.serializer(), response.code))
+            val missing = missingBlobs(response.code, text)
+            when {
+                missing != null -> CompleteOutcome.MissingBlobs(missing)
+                !response.isSuccessful -> throw ApiException(errorFrom(response, text))
+                else -> CompleteOutcome.Accepted(decode(text, CompleteVisitResponse.serializer(), response.code))
+            }
         }
     }
 
     override suspend fun addAddendum(documentId: String, request: AddendumRequest): AddendumOutcome {
         val body = requestJson.encodeToString(AddendumRequest.serializer(), request)
         // The contract requires Idempotency-Key == clientAddendumId.
-        execute(postJson(url("/doctor/documents/${seg(documentId)}/addenda"), body, request.clientAddendumId)).use { response ->
+        return call(postJson(url("/doctor/documents/${seg(documentId)}/addenda"), body, request.clientAddendumId)) { response ->
             val text = response.body.string()
-            missingBlobs(response.code, text)?.let { return AddendumOutcome.MissingBlobs(it) }
-            if (!response.isSuccessful) throw ApiException(errorFrom(response, text))
-            return AddendumOutcome.Accepted(decode(text, AddendumResponse.serializer(), response.code))
+            val missing = missingBlobs(response.code, text)
+            when {
+                missing != null -> AddendumOutcome.MissingBlobs(missing)
+                !response.isSuccessful -> throw ApiException(errorFrom(response, text))
+                else -> AddendumOutcome.Accepted(decode(text, AddendumResponse.serializer(), response.code))
+            }
         }
     }
 

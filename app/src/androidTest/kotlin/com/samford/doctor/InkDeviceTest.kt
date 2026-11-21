@@ -1,10 +1,10 @@
 package com.samford.doctor
 
-import android.app.Activity
 import android.os.SystemClock
 import android.view.InputDevice
 import android.view.MotionEvent
 import android.view.ViewGroup
+import androidx.activity.ComponentActivity
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -37,7 +37,8 @@ class InkDeviceTest {
     fun jetpackInkPathTakesStylusInputAndHandsOffToTheDryLayer() {
         val strokes = CopyOnWriteArrayList<InkStroke>()
         lateinit var view: InkSurfaceView
-        val scenario = ActivityScenario.launch(Activity::class.java)
+        // ComponentActivity is declared in the debug app by compose-ui-test-manifest.
+        val scenario = ActivityScenario.launch(ComponentActivity::class.java)
         scenario.onActivity { activity ->
             view = InkSurfaceView(activity)
             activity.setContentView(view, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))

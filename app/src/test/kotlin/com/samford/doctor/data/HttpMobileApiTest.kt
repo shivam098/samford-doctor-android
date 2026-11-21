@@ -5,7 +5,10 @@ import com.samford.doctor.data.remote.CompleteOutcome
 import com.samford.doctor.data.remote.CompleteVisitRequest
 import com.samford.doctor.data.remote.HttpMobileApi
 import com.samford.doctor.data.remote.PlainErrors
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.runBlocking
+import okhttp3.ResponseBody.Companion.asResponseBody
+import okio.buffer
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
@@ -104,6 +107,37 @@ class HttpMobileApiTest {
         val queue = api.queue("2026-11-21", "\"etag-1\"")
         assertTrue(queue.notModified)
         assertEquals("\"etag-1\"", server.takeRequest().getHeader("If-None-Match"))
+    }
+
+    @Test
+    fun responseBodiesAreReadOffTheCallersThread() {
+        val readers = java.util.Collections.synchronizedList(ArrayList<String>())
+        val client = okhttp3.OkHttpClient.Builder().addNetworkInterceptor { chain ->
+            val response = chain.proceed(chain.request())
+            val original = response.body
+            val probe = object : okio.ForwardingSource(original.source()) {
+                override fun read(sink: okio.Buffer, byteCount: Long): Long {
+                    readers += Thread.currentThread().name
+                    return super.read(sink, byteCount)
+                }
+            }
+            response.newBuilder().body(probe.buffer().asResponseBody(original.contentType(), original.contentLength())).build()
+        }.build()
+        val offMain = HttpMobileApi({ server.url("/").toString() }, { "tok" }, { "device-abcdef12" }, 1, client)
+        server.enqueue(json(200, """{"date":"2026-11-21","doctorId":"doctor-a","entries":[]}"""))
+        server.enqueue(json(200, """{"labs":[]}"""))
+        // A single-thread "caller" stands in for the main thread, where Android forbids network reads.
+        val caller = java.util.concurrent.Executors.newSingleThreadExecutor { r -> Thread(r, "caller-main") }
+        try {
+            runBlocking(caller.asCoroutineDispatcher()) {
+                offMain.queue("2026-11-21", null)
+                offMain.labs()
+            }
+        } finally {
+            caller.shutdown()
+        }
+        assertTrue(readers.isNotEmpty())
+        assertTrue(readers.toString(), readers.none { it.startsWith("caller-main") })
     }
 
     @Test
