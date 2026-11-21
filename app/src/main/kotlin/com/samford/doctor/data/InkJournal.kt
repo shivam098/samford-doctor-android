@@ -33,13 +33,14 @@ class InkJournal(private val db: SamfordDb, private val dao: InkDao, private val
         dao.insertOp(PageOpEntity(pageId = pageId, deltaJson = json.encodeToString(PageDelta.serializer(), delta), createdAtMs = clock.nowMs()))
     }
 
-    suspend fun load(pageId: String): InkPage? {
-        val entity = dao.page(pageId) ?: return null
+    /** Snapshot and later deltas are read in one transaction, so a concurrent compaction can't hide ink. */
+    suspend fun load(pageId: String): InkPage? = db.withTransaction {
+        val entity = dao.page(pageId) ?: return@withTransaction null
         var page = json.decodeFromString(InkPage.serializer(), entity.snapshotJson)
         for (op in dao.opsAfter(pageId, entity.snapshotSeq)) {
             page = page.apply(json.decodeFromString(PageDelta.serializer(), op.deltaJson))
         }
-        return page.copy(index = entity.pageIndex)
+        page.copy(index = entity.pageIndex)
     }
 
     /** Pages of a document in order, as (pageId, page). */

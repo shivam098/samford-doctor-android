@@ -73,7 +73,7 @@ class ServerRepository(
         val message = if (candidates.isEmpty()) {
             "No hospital server found. You can keep working in offline demo mode or enter the server address."
         } else {
-            "The hospital server isn't reachable. Work stays on this tablet and uploads when it's back."
+            UNREACHABLE
         }
         val unreachable = ServerStatus.Unreachable(message, apiBase)
         _status.value = unreachable
@@ -87,6 +87,16 @@ class ServerRepository(
         false
     }
 
+    /**
+     * A request to the current server got no API answer (the demo tunnel can move at any time).
+     * Drops to Unreachable so the next queue refresh or sync retry re-runs discovery.
+     */
+    fun markUnreachable(url: String) {
+        val current = _status.value as? ServerStatus.Online ?: return
+        if (!url.startsWith(current.apiBase)) return
+        _status.compareAndSet(current, ServerStatus.Unreachable(UNREACHABLE, current.apiBase))
+    }
+
     /** Sets (or clears, with null) the manual server address, e.g. from a QR link, and re-checks. */
     suspend fun setManualUrl(url: String?): ServerStatus {
         if (url != null && HttpMobileApi.normalizeApiBase(url) == null) {
@@ -95,5 +105,9 @@ class ServerRepository(
         }
         settings.setManualUrl(url)
         return refresh()
+    }
+
+    companion object {
+        const val UNREACHABLE = "The hospital server isn't reachable. Work stays on this tablet and uploads when it's back."
     }
 }

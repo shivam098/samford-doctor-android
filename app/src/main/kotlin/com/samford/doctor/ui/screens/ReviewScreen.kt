@@ -41,6 +41,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -175,6 +176,8 @@ fun ReviewScreen(vm: AppViewModel, visitId: String) {
                 if (pages.isEmpty()) {
                     Text(stringResource(R.string.review_nothing_to_send))
                 } else {
+                    // A fresh row per recipient, so each list starts at its first document.
+                    key(selected) {
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxSize().testTag("review-pages")) {
                         items(pages, key = { (d, i) -> "${d.docId}-$i" }) { (d, i) ->
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -188,6 +191,7 @@ fun ReviewScreen(vm: AppViewModel, visitId: String) {
                                 Text("${docTitle(d)} · ${stringResource(R.string.page_number, i + 1)}", style = MaterialTheme.typography.bodySmall)
                             }
                         }
+                    }
                     }
                 }
             }

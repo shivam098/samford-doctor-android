@@ -11,7 +11,9 @@ import com.samford.doctor.testing.Fixtures
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -53,6 +55,24 @@ class JournalRecoveryTest {
         val db3 = openDb(name)
         assertEquals(listOf("b", "c"), InkJournal(db3, db3.inkDao(), FixedClock()).load("p1")!!.strokes.map { it.id })
         db3.close()
+    }
+
+    @Test
+    fun loadingWhileCompactionCommitsNeverLosesInk() = runBlocking {
+        // A file database with WAL, like the app: reads and the compaction run on different connections.
+        val db = openDb("journal-race-${System.nanoTime()}.db")
+        val journal = InkJournal(db, db.inkDao(), FixedClock())
+        repeat(150) { i ->
+            val pageId = "p$i"
+            journal.createPage(pageId, "d", 0)
+            (1..4).forEach { s -> journal.append(pageId, PageDelta.addStroke(Fixtures.stroke("s$i-$s"))) }
+            // Completing a visit freezes (reads) its pages while leaving the visit compacts them.
+            val compaction = launch(Dispatchers.IO) { journal.compact(pageId) }
+            val loads = (1..3).map { async(Dispatchers.Default) { journal.load(pageId)!!.strokes.size } }
+            compaction.join()
+            loads.forEach { assertEquals("page $pageId lost ink during compaction", 4, it.await()) }
+        }
+        db.close()
     }
 
     @Test

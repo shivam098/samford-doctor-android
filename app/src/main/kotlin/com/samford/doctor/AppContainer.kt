@@ -60,6 +60,7 @@ class AppContainer(
         tokenProvider = { sessionRef.token },
         deviceIdProvider = { deviceId },
         appVersionCode = BuildConfig.VERSION_CODE,
+        onUnreachable = { url -> serverRef.markUnreachable(url) },
     )
 
     val server = ServerRepository(api, settings, discoveryUrl).also { serverRef = it }

@@ -26,6 +26,12 @@ class HttpMobileApi(
     private val client: OkHttpClient = defaultClient(),
     private val json: Json = ApiJson.json,
     private val requestJson: Json = ApiJson.requestJson,
+    /**
+     * Told the URL of a request that the hospital API didn't answer: no connection, or an error
+     * page without the API's error envelope (e.g. a tunnel that has moved). Lets the app re-run
+     * discovery instead of retrying a dead address forever.
+     */
+    private val onUnreachable: (url: String) -> Unit = {},
 ) : MobileApi {
 
     private val jsonType = "application/json; charset=utf-8".toMediaType()
@@ -57,6 +63,7 @@ class HttpMobileApi(
     private suspend fun <R> call(request: Request, handle: (Response) -> R): R = try {
         runInterruptible(Dispatchers.IO) { client.newCall(request).execute().use(handle) }
     } catch (e: IOException) {
+        onUnreachable(request.url.toString())
         throw ApiException(PlainErrors.network())
     }
 
@@ -77,6 +84,8 @@ class HttpMobileApi(
 
     private fun errorFrom(response: Response, body: String): ApiError {
         val err = envelope(body)?.error
+        // HEAD responses carry no body, so only a GET/POST/PUT without the envelope is a foreign answer.
+        if (err == null && response.request.method != "HEAD") onUnreachable(response.request.url.toString())
         val retryAfterMs = response.header("Retry-After")?.trim()?.toLongOrNull()?.times(1000)
         return PlainErrors.fromServer(response.code, err?.code.orEmpty(), err?.message.orEmpty(), err?.retryable ?: false, retryAfterMs)
     }
