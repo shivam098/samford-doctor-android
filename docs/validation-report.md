@@ -53,6 +53,7 @@ fail on the previous code and pass on the fix.
 | Emulator online run | A relaunch mid-visit (system input-device reconfiguration) closed the open stamp sheet | Visit UI state is `rememberSaveable`; navigation/editor were already in the ViewModel |
 | Backend going live | Once online, the app never re-ran discovery, so a moved tunnel stranded it until restart | Foreign error pages / connection failures drop to unreachable → rediscovery |
 | Review screenshot | The patient's page row kept the pharmacy row's scroll position and hid the visit summary | Fresh row per recipient |
+| Release smoke on API 35 (after v0.1.0) | When the sign-in screen's own server check failed at start-up, a later successful check showed "Connected" but kept the offline demo doctors (tapping one would start an offline session while connected) | The doctor list reloads when the server comes online (`SignInPersonasTest`); fixed on main after v0.1.0, workaround in v0.1.0: tap "Check again" |
 | Emulator runs | Notification-permission dialog paused the activity during tests; offline run silently went online via the last-good server | Test grants the permission; offline run uses airplane mode |
 
 ## GitHub Actions
@@ -62,6 +63,7 @@ Final commit **3c1c1e6** (the release source):
 - [Android CI 44878227479](https://github.com/shivam098/samford-doctor-android/actions/runs/44878227479): success — build, lint, all JVM tests incl. the real-backend integration tests and the cross-app producer against dffde17, R8 release build.
 - [Tablet emulator tests 44878227590](https://github.com/shivam098/samford-doctor-android/actions/runs/44878227590): success on **API 34 and API 35** Pixel Tablet AVDs, shipping (automatic) ink path, **0 native crashes** in all logcats:
   - R8 release smoke: the minified release (debug-key signed in CI) launched, found the live server through discovery and listed Demo doctors A/B/C; no crash in its process.
+  - Since 11cf22b the smoke is `scripts/ci/release-smoke.sh`: home screens are disabled while it runs (the emulator launcher's own ANR dialog covered the app in runs 44879129130/44880157966), other apps' ANR dialogs are dismissed with "Wait", the screen is read up to 8 times, and it fails on any crash or ANR of the app or on "Connected" with only offline doctors; every reason is appended. Green on API 34 and 35: [44882811644](https://github.com/shivam098/samford-doctor-android/actions/runs/44882811644) (Android CI [44882811595](https://github.com/shivam098/samford-doctor-android/actions/runs/44882811595)).
   - Offline journey in airplane mode: sign in → signature → queue → write → **activity relaunch with the stamp sheet open** → **background right after a stroke and return** → review → complete → saved on tablet.
   - Ink device tests: chosen wet-ink path matches the device capability; a stylus stroke is committed and handed to the dry layer; on-device render determinism.
   - Online journey against backend dffde17: the same steps, then the visit reaches **Received by hospital** with per-recipient status.
