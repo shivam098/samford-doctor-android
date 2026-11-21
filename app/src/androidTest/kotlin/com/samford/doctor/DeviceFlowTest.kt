@@ -61,17 +61,6 @@ class DeviceFlowTest {
         android.os.ParcelFileDescriptor.AutoCloseInputStream(pfd).use { it.readBytes() }
     }
 
-    private fun awaitNetwork(timeoutMs: Long = 120_000) {
-        val cm = app.getSystemService(android.net.ConnectivityManager::class.java)
-        val deadline = android.os.SystemClock.uptimeMillis() + timeoutMs
-        while (android.os.SystemClock.uptimeMillis() < deadline) {
-            val caps = cm.getNetworkCapabilities(cm.activeNetwork)
-            if (caps?.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) == true) return
-            Thread.sleep(500)
-        }
-        org.junit.Assert.fail("the emulator has no network for the online run")
-    }
-
     @After
     fun restoreNetwork() {
         if (apiBase == null) shell("cmd connectivity airplane-mode disable")
@@ -101,14 +90,14 @@ class DeviceFlowTest {
         if (apiBase != null) {
             // The offline run before this one used airplane mode; the emulator can take a while to reconnect.
             shell("cmd connectivity airplane-mode disable")
-            awaitNetwork()
+            awaitInternet(online = true)
             runBlocking { app.container.server.setManualUrl(apiBase) }
             compose.waitUntil(30_000) { compose.onAllNodes(androidx.compose.ui.test.hasText("Check again")).fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText("Check again").performClick()
         } else {
             // A real offline tablet: no discovery, no last-good server.
             shell("cmd connectivity airplane-mode enable")
-            Thread.sleep(3_000)
+            awaitInternet(online = false)
             compose.waitUntil(30_000) { compose.onAllNodes(androidx.compose.ui.test.hasText("Check again")).fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithText("Check again").performClick()
         }

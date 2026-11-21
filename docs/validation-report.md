@@ -71,6 +71,30 @@ fail on the previous code and pass on the fix.
 
 ## GitHub Actions
 
+### Memory across activity recreation (`RecreationMemoryTest`, run [44890765533](https://github.com/shivam098/samford-doctor-android/actions/runs/44890765533))
+
+The writing screen held a multi-page visit with ink while the device went through 20 rotations,
+20 recreations (any configuration change the app does not handle itself: locale, font size,
+density, mcc/mnc) and 3 airplane-mode off/on cycles. After each step the test forced a GC and
+recorded `dumpsys meminfo` (CSV in the run's artifacts). Result: **no leak**.
+
+| | API 34 | API 35 |
+|---|---|---|
+| Activities / ViewRootImpl (all 47 steps) | 1 / 1 | 1 / 1 |
+| New activity instances from 20 rotations | 0 (the manifest handles orientation and screen size) | 0 |
+| MainActivity instances created / still reachable after GC | 21 / 0 besides the current one | 21 / 0 |
+| Java heap: after rotations → after 20 recreations → final | 12.3 → 12.3 → 12.3 MB (+32 KB since the first recreation) | 13.9 → 13.9 → 14.0 MB (+116 KB) |
+| Native heap: first recreation → final | 37.8 → 34.5 MB | 31.5 → 33.1 MB |
+| Total PSS: baseline → final | 149 → 132 MB | 155 → 147 MB |
+
+So the API 34 hang (below) was not GC thrash from retained activities, ink layers or bitmaps. The
+test now runs on every CI push. If a device step runs past 8 minutes, the app dumps all Java
+thread stacks and memory to logcat (`StallDumpRule`). Past 15 minutes, CI also collects meminfo,
+activity state, `debuggerd -j`, a screenshot and the logcat tail (`scripts/ci/stall-watchdog.sh`).
+A repeat therefore leaves evidence instead of a silent 60-minute hang.
+
+### Releases
+
 v0.1.1, tagged commit **b31c7e9**:
 
 - [Android CI 44884527177](https://github.com/shivam098/samford-doctor-android/actions/runs/44884527177): success.

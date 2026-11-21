@@ -113,7 +113,7 @@ class RecreationMemoryTest {
 
     private fun setUpVisitWithInk() {
         shell("cmd connectivity airplane-mode enable")
-        SystemClock.sleep(3_000)
+        awaitInternet(online = false)
         // Signed in by an earlier test in this run, or not yet: handle both.
         compose.waitUntil(60_000) { exists("queue-list") || compose.onAllNodes(hasText("Check again")).fetchSemanticsNodes().isNotEmpty() }
         if (!exists("queue-list")) {
@@ -182,11 +182,11 @@ class RecreationMemoryTest {
         // Airplane mode on/off: on the emulator the radio change recreates the activity.
         repeat(3) { i ->
             shell("cmd connectivity airplane-mode disable")
-            SystemClock.sleep(3_000)
+            awaitInternet(online = true)
             assertStillWriting()
             measure("airplane-off-${i + 1}")
             shell("cmd connectivity airplane-mode enable")
-            SystemClock.sleep(3_000)
+            awaitInternet(online = false)
             assertStillWriting()
             measure("airplane-on-${i + 1}")
         }
