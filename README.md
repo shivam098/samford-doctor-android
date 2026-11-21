@@ -103,7 +103,7 @@ See [docs/validation-report.md](docs/validation-report.md) for exact commands an
 
 ## Limitations and what to test on a real tablet
 
-- **Needs a physical Galaxy Tab with S Pen** (cannot be measured on emulators): ink latency and feel, pressure response, palm rejection while resting the hand, S Pen side-button erase, hover cursor, and the wet→dry hand-off look.
+- **Needs a physical Galaxy Tab with S Pen** (cannot be measured on emulators): ink latency and feel, pressure response, palm rejection while resting the hand, S Pen side-button erase, hover cursor, and the wet→dry hand-off look. The low-latency (front-buffered) ink path runs only on hardware GPUs; emulators use the standard path. Check Settings → About shows "Pen ink: low-latency" on the tablet.
 - Demo security: public demo personas, bearer token stored in app DataStore (production: Android Keystore-wrapped), cleartext HTTP allowed for LAN demos (production: HTTPS only, certificate pinning).
 - No handwriting recognition: the record is the image; machine-read text was skipped to avoid an unreliable search index (see [docs/writing-experience.md](docs/writing-experience.md)).
 - Doctor favourites are a fixed list in this version; ward rounds, discharge and video visits are out of scope.

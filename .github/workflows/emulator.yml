@@ -21,13 +21,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Shipping behaviour: the app picks the wet-ink path from the GPU's capabilities.
-          - { name: "API 34 SwiftShader GL, auto", api: 34, gpu: swiftshader_indirect, wetInk: auto }
-          # Discrimination: the same emulator with each wet-ink path forced.
-          - { name: "API 34 SwiftShader GL, low-latency forced", api: 34, gpu: swiftshader_indirect, wetInk: lowlatency }
-          - { name: "API 34 SwiftShader GL, standard forced", api: 34, gpu: swiftshader_indirect, wetInk: standard }
-          - { name: "API 34 ANGLE SwiftShader Vulkan, low-latency forced", api: 34, gpu: swangle_indirect, wetInk: lowlatency }
-          - { name: "API 35 SwiftShader GL, low-latency forced", api: 35, gpu: swiftshader_indirect, wetInk: lowlatency }
+          # Shipping behaviour: the app picks the wet-ink path from the GPU's capabilities (software
+          # GPUs get the standard path). Run 44871826624 forced the low-latency path on SwiftShader
+          # GL/Vulkan (API 34/35) and reproduced libhwui crashes and a renderer hang; the standard
+          # path ran crash-free.
+          - { name: "API 34 tablet, auto ink path", api: 34, gpu: swiftshader_indirect, wetInk: auto }
+          - { name: "API 35 tablet, auto ink path", api: 35, gpu: swiftshader_indirect, wetInk: auto }
     steps:
       - uses: actions/checkout@v5
 

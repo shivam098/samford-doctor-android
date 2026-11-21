@@ -24,6 +24,11 @@ record a visit.
   low-latency rendering with `androidx.input` **motion prediction**, `requestUnbufferedDispatch` for
   every pen sample, and `eagerInit()` so the first stroke is not delayed. Pressure-pen brush shapes
   the line by S Pen pressure.
+- **Capability gate**: the low-latency path is used only where the device reports hardware
+  front-buffer support (`HardwareBuffer.USAGE_FRONT_BUFFER`) and a hardware GPU. Under software GL
+  (emulators' SwiftShader) front-buffered rendering crashed the platform renderer, so those devices
+  draw the in-flight stroke on a plain canvas instead (higher latency, identical record).
+  **Settings → About** shows which path is active ("Pen ink: low-latency" or "standard").
 - **Dry ink** (everything already written) is drawn by our own deterministic renderer
   (`render/StrokePainter`) on a background thread — the same code that renders the pages sent to the
   pharmacy, labs and patient. What the doctor sees after lifting the pen is what recipients get.
@@ -77,5 +82,7 @@ record format (ink is stored as vectors with timing and pressure).
 ## What still needs a real Galaxy Tab with S Pen
 
 Emulators cannot measure ink latency, pressure response, palm rejection while the hand rests on the
-glass, the S Pen side button, hover, or the subjective feel. See
-[validation-report.md](validation-report.md) for the checklist to run on a physical tablet.
+glass, the S Pen side button, hover, or the subjective feel, and they never run the low-latency
+path (their GPUs are software). On a Galaxy Tab, first confirm Settings → About says "Pen ink:
+low-latency". See [validation-report.md](validation-report.md) for the checklist to run on a
+physical tablet.
