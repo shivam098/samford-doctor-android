@@ -56,8 +56,11 @@ jobs:
           nohup npm run mobile:isolated -- --port 4320 --data "$RUNNER_TEMP/samford-db" --reset --relaxed-limits --test-support > "$RUNNER_TEMP/backend.log" 2>&1 &
           for i in $(seq 1 60); do curl -fsS http://127.0.0.1:4320/api/mobile/v1/meta && break; sleep 2; done
 
-      - name: Build app and test APKs
-        run: ./gradlew --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest
+      - name: Build app and test APKs, plus the R8 release signed with the debug key for a smoke run
+        run: |
+          ./gradlew --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest :app:assembleRelease
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$BT/apksigner" sign --ks "$HOME/.android/debug.keystore" --ks-pass pass:android --key-pass pass:android --ks-key-alias androiddebugkey --out release-smoke.apk app/build/outputs/apk/release/app-release-unsigned.apk
 
       - name: Instrumented tests on a Pixel Tablet AVD (offline, then online)
         uses: reactivecircus/android-emulator-runner@v2
@@ -70,6 +73,18 @@ jobs:
           emulator-options: -no-window -gpu ${{ matrix.gpu }} -noaudio -no-boot-anim -camera-back none
           script: |
             mkdir -p artifacts
+            adb install -r release-smoke.apk
+            adb logcat -c
+            adb shell am start -W -n com.samford.doctor/.MainActivity
+            sleep 30
+            adb shell uiautomator dump /sdcard/release-ui.xml || (sleep 5; adb shell uiautomator dump /sdcard/release-ui.xml) || true
+            adb pull /sdcard/release-ui.xml artifacts/release-ui.xml || true
+            adb shell screencap -p /sdcard/release.png; adb pull /sdcard/release.png artifacts/release-smoke.png || true
+            adb logcat -d > artifacts/release-logcat.txt
+            adb shell pidof com.samford.doctor > artifacts/release-pid.txt || echo "release app is not running" > artifacts/release.failed
+            if grep -q "Process: com.samford.doctor," artifacts/release-logcat.txt; then echo "release app crashed" > artifacts/release.failed; fi
+            if ! grep -Eq "Demo doctor A|Asha Verma" artifacts/release-ui.xml; then echo "release sign-in screen did not show doctors" > artifacts/release.failed; fi
+            adb uninstall com.samford.doctor || true
             adb shell "nohup screenrecord --time-limit 175 /sdcard/offline.mp4 > /dev/null 2>&1 &"
             ./gradlew --no-daemon :app:connectedDebugAndroidTest -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true -Pandroid.testInstrumentationRunnerArguments.samfordWetInk=${{ matrix.wetInk }} || echo "offline run failed" > artifacts/offline.failed
             cp -r app/build/outputs/androidTest-results artifacts/offline-test-results || true
@@ -82,7 +97,7 @@ jobs:
             grep -rl "Fatal signal" app/build/outputs/androidTest-results > artifacts/online-native-crashes.txt || true
             sleep 3; adb pull /sdcard/online.mp4 artifacts/online.mp4 || true
             adb pull /sdcard/Android/data/com.samford.doctor.debug/files/screens artifacts/online-screens || true
-            test ! -f artifacts/offline.failed && test ! -f artifacts/online.failed
+            test ! -f artifacts/release.failed && test ! -f artifacts/offline.failed && test ! -f artifacts/online.failed
 
       - uses: actions/upload-artifact@v4
         if: always()
