@@ -6,3 +6,4 @@ gradlew text eol=lf
 *.jar binary
 *.pdf binary
 
+fixtures/seed-history/blobs/** binary

@@ -193,6 +193,47 @@
                     "patient": true
                 }
             }
+        ],
+        "addenda": [
+            {
+                "clientDocId": "seed-patient-b-rx",
+                "reason": "Corrected dose and duration (synthetic sample)",
+                "signedAt": "2026-10-22T05:10:00Z",
+                "pages": [
+                    {
+                        "index": 0,
+                        "pngSha256": "e8b105373d6404f536dcad746dd8bb4edf9f8f8a98b352b9eac70f70ae74d3a3",
+                        "widthPx": 1500,
+                        "heightPx": 2121
+                    },
+                    {
+                        "index": 1,
+                        "pngSha256": "f77340971493df83725eef4bb704c8deb8c0e6ff90b4ab9495cd213eb86298a8",
+                        "widthPx": 1500,
+                        "heightPx": 2121
+                    }
+                ],
+                "pdfSha256": "ba5be26cfd70147a6f0d4f1ed0a97df804a574bfcc0410d8e65a71ef9a666d4c",
+                "inkSha256": "9a2f2dbeb4803d0f59e2130134ae423ccee1d849e43f4ccc7a55e6219518b1cb",
+                "inkFormat": "samford-ink/1",
+                "hints": {
+                    "medicines": [
+                        {
+                            "name": "Tab Paracetamol 650 mg",
+                            "frequency": "1-0-1",
+                            "durationDays": 5,
+                            "notes": "After food"
+                        },
+                        {
+                            "name": "Tab Metformin 500 mg",
+                            "frequency": "1-0-1",
+                            "durationDays": 30,
+                            "notes": "After food"
+                        }
+                    ],
+                    "tests": []
+                }
+            }
         ]
     }
 ]

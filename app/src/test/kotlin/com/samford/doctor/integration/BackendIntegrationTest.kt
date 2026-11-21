@@ -298,6 +298,71 @@ class BackendIntegrationTest {
                     DocType.PRESCRIPTION to listOf(prescription(700L + i)),
                     DocType.INVESTIGATIONS to listOf(SyntheticInk.page(800L + i, 0, 2)),
                 )
+                var rxFrozen: com.samford.doctor.sync.FrozenDocument? = null
+                suspend fun save(frozen: com.samford.doctor.sync.FrozenDocument) = frozen.blobs.forEach { sha ->
+                    val ext = when (sha) {
+                        frozen.pdfSha256 -> "pdf"
+                        frozen.inkSha256 -> "json"
+                        else -> "png"
+                    }
+                    File(blobDir, "$sha.$ext").writeBytes(c.blobs.read(sha)!!)
+                }
+                fun pagesJson(frozen: com.samford.doctor.sync.FrozenDocument) = buildJsonArray {
+                    frozen.pages.forEach { p -> add(buildJsonObject { put("index", p.index); put("pngSha256", p.pngSha256); put("widthPx", p.widthPx); put("heightPx", p.heightPx) }) }
+                }
+                val documentsJson = buildJsonArray {
+                    documents.forEach { (type, pages) ->
+                        val clientDocId = "seed-${entry.patient.patientId}-${type.shortCode.lowercase()}"
+                        val frozen = c.freezer.freezeDocument(clientDocId, type, type.pageTitle, Freezer.docRef(visit, type, 1), pages, header, signature, null, emptyList())
+                        if (type == DocType.PRESCRIPTION) rxFrozen = frozen
+                        save(frozen)
+                        add(
+                            buildJsonObject {
+                                put("clientDocId", clientDocId)
+                                put("type", type.name)
+                                put("title", type.pageTitle)
+                                put("inkFormat", InkFormat.FORMAT)
+                                put("inkSha256", frozen.inkSha256)
+                                put("pdfSha256", frozen.pdfSha256)
+                                put("pages", pagesJson(frozen))
+                                put("routing", ApiJson.json.encodeToJsonElement(com.samford.doctor.model.Routing.serializer(), Freezer.routingFor(type, if (type == DocType.INVESTIGATIONS) listOf("central-lab") else emptyList())))
+                                frozen.hints?.let { put("hints", ApiJson.json.encodeToJsonElement(com.samford.doctor.data.remote.HintsDto.serializer(), it)) }
+                            },
+                        )
+                    }
+                }
+                // patient-b: a signed v2 prescription addendum (earlier page unchanged + addendum page).
+                val addendaJson = if (i != 1) null else {
+                    val v1 = rxFrozen!!
+                    val rxId = "seed-${entry.patient.patientId}-rx"
+                    val reason = "Corrected dose and duration (synthetic sample)"
+                    val addSignedAt = Instant.parse("2026-10-22T05:10:00Z")
+                    val meta = com.samford.doctor.ink.AddendumMeta(rxId, 1, v1.inkSha256, reason, DocType.PRESCRIPTION.pageTitle)
+                    val v2 = c.freezer.freezeDocument(
+                        rxId, DocType.PRESCRIPTION, "Addendum", Freezer.docRef(visit, DocType.PRESCRIPTION, 2), listOf(addendumPage(900L)),
+                        header, c.freezer.signatureBlock(SyntheticInk.signature(seed = 32L), author, addSignedAt), meta, v1.pages,
+                    )
+                    save(v2)
+                    // Structured helper for desk software: the full v2 medicine list (corrected entry replaces v1's).
+                    val hints = v2.hints?.let { add ->
+                        val base = v1.hints ?: com.samford.doctor.data.remote.HintsDto()
+                        base.copy(medicines = base.medicines.filter { m -> add.medicines.none { it.name == m.name } } + add.medicines)
+                    }
+                    buildJsonArray {
+                        add(
+                            buildJsonObject {
+                                put("clientDocId", rxId)
+                                put("reason", reason)
+                                put("signedAt", addSignedAt.toString())
+                                put("pages", pagesJson(v2))
+                                put("pdfSha256", v2.pdfSha256)
+                                put("inkSha256", v2.inkSha256)
+                                put("inkFormat", InkFormat.FORMAT)
+                                hints?.let { put("hints", ApiJson.json.encodeToJsonElement(com.samford.doctor.data.remote.HintsDto.serializer(), it)) }
+                            },
+                        )
+                    }
+                }
                 add(
                     buildJsonObject {
                         put("fixtureId", visit.visitId)
@@ -306,42 +371,8 @@ class BackendIntegrationTest {
                         put("doctorId", author.personaId)
                         put("visitDate", started.toString().take(10))
                         put("signedAt", signedAt.toString())
-                        put(
-                            "documents",
-                            buildJsonArray {
-                                documents.forEach { (type, pages) ->
-                                    val clientDocId = "seed-${entry.patient.patientId}-${type.shortCode.lowercase()}"
-                                    val frozen = c.freezer.freezeDocument(clientDocId, type, type.pageTitle, Freezer.docRef(visit, type, 1), pages, header, signature, null, emptyList())
-                                    frozen.blobs.forEach { sha ->
-                                        val bytes = c.blobs.read(sha)!!
-                                        val ext = when {
-                                            sha == frozen.pdfSha256 -> "pdf"
-                                            sha == frozen.inkSha256 -> "json"
-                                            else -> "png"
-                                        }
-                                        File(blobDir, "$sha.$ext").writeBytes(bytes)
-                                    }
-                                    add(
-                                        buildJsonObject {
-                                            put("clientDocId", clientDocId)
-                                            put("type", type.name)
-                                            put("title", type.pageTitle)
-                                            put("inkFormat", InkFormat.FORMAT)
-                                            put("inkSha256", frozen.inkSha256)
-                                            put("pdfSha256", frozen.pdfSha256)
-                                            put(
-                                                "pages",
-                                                buildJsonArray {
-                                                    frozen.pages.forEach { p -> add(buildJsonObject { put("index", p.index); put("pngSha256", p.pngSha256); put("widthPx", p.widthPx); put("heightPx", p.heightPx) }) }
-                                                },
-                                            )
-                                            put("routing", ApiJson.json.encodeToJsonElement(com.samford.doctor.model.Routing.serializer(), Freezer.routingFor(type, if (type == DocType.INVESTIGATIONS) listOf("central-lab") else emptyList())))
-                                            frozen.hints?.let { put("hints", ApiJson.json.encodeToJsonElement(com.samford.doctor.data.remote.HintsDto.serializer(), it)) }
-                                        },
-                                    )
-                                }
-                            },
-                        )
+                        put("documents", documentsJson)
+                        addendaJson?.let { put("addenda", it) }
                     },
                 )
             }
@@ -350,6 +381,16 @@ class BackendIntegrationTest {
         assertTrue(File(dir, "manifest.json").length() > 0)
         assertTrue((blobDir.listFiles()?.size ?: 0) >= 12)
         fixtures.forEach { f -> f.jsonObject["documents"]!!.jsonArray.forEach { d -> d.jsonObject["pages"]!!.jsonArray.forEach { p -> assertEquals(1500, p.jsonObject["widthPx"]!!.jsonPrimitive.int) } } }
+    }
+
+    private fun addendumPage(seed: Long): InkPage {
+        val med = StampFactory.create(StampCatalog.medicines[4], 12000, 34000, "seed-$seed-m")
+        var x = med.x + med.w + 2500
+        val chips = listOf(StampCatalog.dosage[0], StampCatalog.food[0], StampCatalog.duration[4]).mapIndexed { j, chip ->
+            StampFactory.create(chip, x, 34000, "seed-$seed-c$j").also { x = it.x + it.w + 1500 }
+        }
+        val note = SyntheticInk.page(seed, 0, 1).strokes.map { com.samford.doctor.ink.InkGeometry.transform(it, com.samford.doctor.ink.Affine.translate(0f, 8000f)) }
+        return InkPage(0, strokes = note, stamps = listOf(med) + chips)
     }
 
     private fun prescription(seed: Long): InkPage {
