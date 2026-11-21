@@ -8,6 +8,7 @@ lab results open side by side while writing.
 
 - Companion patient app: [shivam098/samford-patient-android](https://github.com/shivam098/samford-patient-android)
 - Mock hospital backend + pharmacy/lab desks: [shivam098/samford-web-app](https://github.com/shivam098/samford-web-app) (mobile API v1)
+- Live web desks (synthetic shared demo): https://shivam098.github.io/samford/ — after choosing a persona: [front-desk check-in](https://shivam098.github.io/samford/#journey/SJ04), [pharmacy](https://shivam098.github.io/samford/#journey/SJ10), [lab](https://shivam098.github.io/samford/#journey/SJ14)
 
 > Synthetic sample: every page carries a red "SYNTHETIC SAMPLE - not for clinical use" banner. Do not enter real patient data.
 
@@ -51,6 +52,8 @@ Offline: everything above works without a network. Completed visits wait on the 
 ## Server discovery and override
 
 - The build has a baked-in discovery URL (`samford.discoveryUrl` in `gradle.properties`), a stable JSON published by the backend: `{schema:"samford-endpoint/1", status, apiBaseUrl, ...}`. When `status` is `online`, its `apiBaseUrl` is validated with `GET {apiBaseUrl}/meta`.
+- The demo server sits behind a tunnel whose address changes when it restarts. When the server stops answering (no connection, or an error page that isn't the API's), the app marks it unreachable and re-runs discovery on the next queue refresh or sync retry, so it follows the new address without a restart.
+- **Returning-patient demo on the live server**: on the web desk sign in as the *desk* persona, book patient-b with doctor-a today (Appointments, SJ03) and check them in (Check-in, SJ04). The tablet then shows patient-b as returning, with doctor-c's earlier handwritten visit and its prescription v1/v2.
 - **Manual override** (sign-in screen or Settings): type an address such as `http://192.168.1.20:4320` (the app appends `/api/mobile/v1`).
 - **QR / link**: a QR code containing `samford-doctor://connect?api=http://192.168.1.20:4320/api/mobile/v1`, scanned with the Samsung Camera app, opens the app and sets the server.
 - The last server that worked is remembered and used when discovery is unavailable.
@@ -94,9 +97,9 @@ flowchart LR
 
 See [docs/validation-report.md](docs/validation-report.md) for exact commands and results. Summary:
 
-- 63 JVM/Robolectric tests: outbox state machine, idempotent completion and retry (lost reply, missing blobs, expired session, rejection, offline walk-in), addendum versioning, crash-mid-freeze, autosave recovery across a database restart, render determinism (same ink → same PNG/PDF hash), PDF structure, geometry, hints, HTTP contract (headers, envelopes, 409 MISSING_BLOBS, ETag), stylus/eraser/finger/palm MotionEvent routing, and a full offline UI journey with screenshots.
+- 67 JVM/Robolectric tests: outbox state machine, idempotent completion and retry (lost reply, missing blobs, expired session, rejection, offline walk-in), addendum versioning, crash-mid-freeze, autosave recovery across a database restart and under concurrent compaction, render determinism (same ink → same PNG/PDF hash), PDF structure, geometry, hints, HTTP contract (headers, envelopes, 409 MISSING_BLOBS, ETag, bodies read off the main thread), following a moved server through discovery, stylus/eraser/finger/palm MotionEvent routing, and a full offline UI journey (including an activity relaunch mid-visit) with screenshots.
 - 3 integration tests against the real mock backend (pinned commit): complete visit, server pages byte-identical, idempotent replay, pharmacy "dispensed" flowing back, addendum v2, record history, cross-app E2E producer for the patient app, seed fixtures.
-- GitHub Actions: [Android CI](.github/workflows/android.yml) (build, lint, all tests incl. backend integration, R8 release) and [Tablet emulator tests](.github/workflows/emulator.yml) (Pixel Tablet AVD: Jetpack Ink + injected stylus, on-device render determinism, the doctor journey offline and online against the backend, with screenshots and screen recordings as artifacts).
+- GitHub Actions: [Android CI](.github/workflows/android.yml) (build, lint, all tests incl. backend integration, R8 release) and [Tablet emulator tests](.github/workflows/emulator.yml) (Pixel Tablet AVD: Jetpack Ink + injected stylus, on-device render determinism, the doctor journey offline (airplane mode) and online against the backend, including an activity relaunch and backgrounding right after a stroke, with screenshots and screen recordings as artifacts).
 
 ## Limitations and what to test on a real tablet
 
