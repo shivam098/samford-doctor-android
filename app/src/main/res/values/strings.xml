@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">Samford Doctor</string>
+    <string name="synthetic_banner">Demo with synthetic patients only — not for clinical use</string>
+    <string name="loading">Loading…</string>
+
+    <!-- Common actions -->
+    <string name="action_back">Back</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_close">Close</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_done">Done</string>
+    <string name="action_refresh">Refresh</string>
+    <string name="action_resume">Resume visit</string>
+    <string name="action_start_visit">Start visit</string>
+    <string name="action_view_record">View record</string>
+    <string name="action_review_complete">Review &amp; complete</string>
+    <string name="action_sign_complete">Sign &amp; complete visit</string>
+    <string name="action_retry_now">Retry now</string>
+    <string name="action_sign_in_again">Sign in again</string>
+    <string name="action_sync_now">Sync now</string>
+    <string name="action_connect_server">Connect to hospital server</string>
+
+    <!-- Lock -->
+    <string name="lock_title">Samford Doctor is locked</string>
+    <string name="lock_subtitle">Unlock to see patient records</string>
+    <string name="lock_hint">Use your fingerprint, face or screen lock.</string>
+    <string name="lock_unlock">Unlock</string>
+
+    <!-- Sign in and server -->
+    <string name="signin_tagline">Paperless OPD — write by hand, every page reaches pharmacy, labs and the patient.</string>
+    <string name="signin_choose_doctor">Choose a demo doctor</string>
+    <string name="signin_demo_note">This is a public demo. No real passwords or patient data are used. Without a server you can still try the full writing flow with synthetic patients; completed visits wait on the tablet and upload when a server is reachable.</string>
+    <string name="signin_server_persona">Hospital server</string>
+    <string name="signin_offline_persona">Offline demo</string>
+    <string name="signin_use_offline">Use offline demo instead</string>
+    <string name="reg_no">Reg. No. %1$s</string>
+    <string name="server_title">Hospital server</string>
+    <string name="server_online">Connected: %1$s</string>
+    <string name="server_checking">Looking for the hospital server…</string>
+    <string name="server_unknown">Not checked yet</string>
+    <string name="server_manual_label">Server address (optional)</string>
+    <string name="server_qr_hint">Or scan the server QR code with the camera app; it opens Samford Doctor with the address filled in.</string>
+    <string name="server_connect">Connect</string>
+    <string name="server_retry">Check again</string>
+    <string name="server_use_discovery">Use the published server address</string>
+    <string name="server_discovery_url">Published address list: %1$s</string>
+    <string name="mode_offline_demo">Offline demo: synthetic patients on this tablet. Completed visits will upload when you connect to a server.</string>
+    <string name="mode_connected">Connected to the hospital server</string>
+
+    <!-- Signature -->
+    <string name="signature_title">Your signature</string>
+    <string name="signature_hint">Sign once here. It is added to every page you complete, with the time and your registration number.</string>
+    <string name="signature_clear">Clear</string>
+    <string name="signature_save">Save signature</string>
+
+    <!-- Queue -->
+    <string name="queue_title">Today\'s OPD · %1$s</string>
+    <string name="queue_empty">No patients in today\'s queue yet. Use “Add walk-in” to try a visit.</string>
+    <string name="queue_add_walkin">Add walk-in (demo)</string>
+    <string name="token_short">Token</string>
+    <string name="token_label">Token %1$s</string>
+    <string name="allergies_label">Allergies: %1$s</string>
+    <string name="returning_patient">Returning</string>
+    <string name="local_demo">On this tablet</string>
+    <string name="vitals_not_recorded">Vitals not recorded</string>
+    <string name="status_booked">Booked</string>
+    <string name="status_waiting">Waiting</string>
+    <string name="status_called">Called</string>
+    <string name="status_in_consultation">In consultation</string>
+    <string name="status_on_hold">On hold</string>
+    <string name="status_completed">Completed</string>
+    <string name="status_missed">Missed</string>
+    <string name="status_cancelled">Cancelled</string>
+    <string name="status_unknown">Unknown</string>
+    <string name="confirm_identity_title">Confirm the patient</string>
+    <string name="confirm_identity_body">Please confirm this is the patient in front of you. Their details are printed on every page automatically.</string>
+    <string name="confirm_identity_ok">Yes, start visit</string>
+    <string name="walkin_title">Add a walk-in (demo)</string>
+    <string name="walkin_hint">Synthetic patients only. Do not enter real names.</string>
+    <string name="walkin_name">Name</string>
+    <string name="walkin_age">Age</string>
+    <string name="walkin_add">Add to queue</string>
+    <string name="sex_female">Female</string>
+    <string name="sex_male">Male</string>
+    <string name="sex_other">Other</string>
+    <string name="sync_all_done">All synced</string>
+    <string name="sync_waiting">Uploading: %1$d</string>
+    <string name="sync_needs_attention">Needs attention: %1$d</string>
+
+    <!-- Writing -->
+    <string name="history_toggle">Earlier visits</string>
+    <string name="doc_visit_summary">Visit summary</string>
+    <string name="doc_prescription">Prescription</string>
+    <string name="doc_investigations">Investigations</string>
+    <string name="doc_advice">Advice / Referral</string>
+    <string name="doc_other">Notes</string>
+    <string name="doc_addendum">Addendum</string>
+    <string name="labs_send_to">Send to:</string>
+    <string name="labs_none_selected">Choose at least one lab</string>
+    <string name="tool_pen">Pen</string>
+    <string name="tool_highlighter">Highlight</string>
+    <string name="tool_eraser_stroke">Erase stroke</string>
+    <string name="tool_eraser_area">Erase area</string>
+    <string name="tool_lasso">Select</string>
+    <string name="tool_stamps">Stamps</string>
+    <string name="tool_undo">Undo</string>
+    <string name="tool_redo">Redo</string>
+    <string name="tool_finger_on">Finger writes</string>
+    <string name="tool_finger_off">Finger scrolls</string>
+    <string name="tool_fit">Fit page</string>
+    <string name="page_number">Page %1$d</string>
+    <string name="page_add">Page</string>
+    <string name="page_added">Added page %1$d</string>
+    <string name="page_go_next">Go to it</string>
+    <string name="stamp_tap_to_place">Tap the page to place “%1$s”</string>
+    <string name="selection_hint">Drag to move · corner to resize</string>
+    <string name="read_only_completed">Completed — add an addendum to correct</string>
+    <string name="stamps_title">Stamps and favourites</string>
+    <string name="stamps_hint">Pick one, then tap on the page with the pen. Stamps print crisply; your handwriting stays the record.</string>
+    <string name="stamps_dosage">Dosage</string>
+    <string name="stamps_food">Food timing</string>
+    <string name="stamps_duration">Duration</string>
+    <string name="stamps_medicines">Favourite medicines</string>
+    <string name="stamps_tests">Favourite tests</string>
+    <string name="stamps_advice">Advice</string>
+    <string name="stamps_diagrams">Diagrams to annotate</string>
+
+    <!-- History -->
+    <string name="history_title">Earlier visits</string>
+    <string name="history_empty">No earlier visits or results for this patient.</string>
+    <string name="history_from_tablet">Saved on this tablet</string>
+    <string name="history_has_addendum">with addendum</string>
+    <string name="history_lab_results">Lab results</string>
+    <string name="history_ref_range">Reference: %1$s</string>
+    <string name="history_repeat_rx">Repeat this prescription</string>
+
+    <!-- Review -->
+    <string name="review_title">Review before signing · %1$s</string>
+    <string name="review_who_gets_what">Who receives what</string>
+    <string name="recipient_pharmacy">Pharmacy</string>
+    <string name="recipient_patient">Patient app</string>
+    <string name="review_nothing_to_send">Nothing to send</string>
+    <string name="review_not_sent">Not written, not sent: %1$s</string>
+    <string name="review_warn_no_lab">Investigations are written but no lab is chosen; only the patient will get them.</string>
+    <string name="review_warn_allergy">Allergies: %1$s. Please re-check the prescription.</string>
+    <string name="review_warn_empty">Nothing has been written for this visit yet.</string>
+    <string name="review_warn_signature">Set up your signature before completing visits.</string>
+    <string name="review_follow_up">Follow-up</string>
+    <string name="review_lock_note">After completion the pages are signed and locked on this tablet. Corrections are added as an addendum; the original always stays readable.</string>
+    <string name="review_exactly_what">Exactly what %1$s receives</string>
+    <string name="follow_none">None</string>
+    <string name="follow_3d">3 days</string>
+    <string name="follow_1w">1 week</string>
+    <string name="follow_2w">2 weeks</string>
+    <string name="follow_1m">1 month</string>
+    <string name="complete_confirm_title">Sign and complete this visit?</string>
+    <string name="complete_confirm_body">Your signature, the time and your registration number are added. The visit is saved on this tablet straight away and uploads in the background, so you can call the next patient now.</string>
+    <string name="visit_completed_message">Visit completed and saved on this tablet. Uploading in the background.</string>
+
+    <!-- Sync -->
+    <string name="sync_title">Sync status</string>
+    <string name="sync_summary">Received: %1$d · Waiting: %2$d · Need attention: %3$d</string>
+    <string name="sync_empty">No completed visits yet.</string>
+    <string name="bundle_visit">Completed visit</string>
+    <string name="bundle_addendum">Addendum</string>
+    <string name="step_saved">Saved on tablet</string>
+    <string name="step_uploading">Uploading</string>
+    <string name="step_received">Received by hospital</string>
+    <string name="state_saved">Saved on tablet, waiting to upload</string>
+    <string name="state_uploading">Uploading…</string>
+    <string name="state_received">Received by hospital %1$s</string>
+    <string name="state_waiting_retry">Will retry automatically</string>
+    <string name="state_auth">Sign in to the hospital server to upload</string>
+    <string name="state_attention">Needs attention</string>
+    <string name="delivery_pending">waiting</string>
+    <string name="delivery_available">available</string>
+    <string name="delivery_viewed">viewed</string>
+    <string name="delivery_sample">sample collected</string>
+    <string name="delivery_result">result ready</string>
+    <string name="delivery_partial">partly dispensed</string>
+    <string name="delivery_dispensed">dispensed</string>
+    <string name="delivery_not_dispensed">not dispensed</string>
+    <string name="delivery_superseded">replaced by addendum</string>
+
+    <!-- Record and addendum -->
+    <string name="record_title">Record · %1$s</string>
+    <string name="record_freezing">Signing and saving the pages…</string>
+    <string name="version_original">v%1$d · Original · signed %2$s</string>
+    <string name="version_addendum">v%1$d · Addendum · signed %2$s · reason: %3$s</string>
+    <string name="addendum_add">Add addendum</string>
+    <string name="addendum_continue">Continue addendum</string>
+    <string name="addendum_sign">Sign &amp; add addendum</string>
+    <string name="addendum_explain">Addendum to %1$s v%2$d. The original stays unchanged and readable everywhere.</string>
+    <string name="addendum_reason">Reason for the addendum (required)</string>
+    <string name="addendum_confirm_body">A new signed version is created with your reason. Earlier pages are kept exactly as they were.</string>
+    <string name="addendum_done">Addendum signed and saved. Uploading in the background.</string>
+    <string name="reason_dose">Dose correction</string>
+    <string name="reason_added">Medicine added</string>
+    <string name="reason_legibility">Clarified handwriting</string>
+    <string name="reason_test">Test added</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_note">Changes the app\'s labels. Printed pages always use the hospital template.</string>
+    <string name="settings_finger_writing">Write with finger</string>
+    <string name="settings_finger_writing_note">Off: only the S Pen writes; fingers scroll and zoom (best palm rejection).</string>
+    <string name="settings_app_lock">App lock</string>
+    <string name="settings_app_lock_note">Ask for fingerprint, face or screen lock when returning after a minute.</string>
+    <string name="settings_app_lock_unavailable">Set a screen lock on this tablet to use app lock.</string>
+    <string name="settings_account">Doctor</string>
+    <string name="settings_resign">Redo signature</string>
+    <string name="settings_sign_out">Sign out</string>
+    <string name="settings_sign_out_note">Signing out never deletes visits waiting to upload.</string>
+    <string name="settings_about">About</string>
+    <string name="settings_ink_format">Ink record: %1$s · renderer %2$s</string>
+
+    <!-- Notifications: never include patient names -->
+    <string name="notif_channel_sync">Upload status</string>
+    <string name="notif_title">Samford Doctor</string>
+    <plurals name="notif_needs_attention">
+        <item quantity="one">%d completed visit needs your attention to upload</item>
+        <item quantity="other">%d completed visits need your attention to upload</item>
+    </plurals>
+</resources>

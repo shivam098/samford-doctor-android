@@ -1,0 +1,23 @@
+# Baseline Profile (human-written): pre-compiles the hot paths that run while a doctor writes, so
+# the first strokes after install/update are already AOT-compiled (no JIT warm-up jank).
+# AGP packages this into the release APK; androidx.profileinstaller installs it on first launch.
+
+# Input routing, stroke capture, wet/dry ink layers and the page canvas.
+HSPLcom/samford/doctor/ui/write/**;->**(**)**
+HSPLcom/samford/doctor/input/**;->**(**)**
+
+# Canonical rendering (also used for the on-screen dry layer and thumbnails).
+HSPLcom/samford/doctor/render/**;->**(**)**
+
+# Ink model, geometry (erasers, lasso), deltas and the editor state.
+HSPLcom/samford/doctor/ink/**;->**(**)**
+HSPLcom/samford/doctor/editor/**;->**(**)**
+
+# Autosave journal on every stroke.
+HSPLcom/samford/doctor/data/InkJournal;->**(**)**
+HSPLcom/samford/doctor/data/JournalWriter;->**(**)**
+
+# Writing and queue screens.
+HSPLcom/samford/doctor/ui/screens/WritingScreenKt**;->**(**)**
+HSPLcom/samford/doctor/ui/screens/QueueScreenKt**;->**(**)**
+HSPLcom/samford/doctor/ui/VisitSession**;->**(**)**
