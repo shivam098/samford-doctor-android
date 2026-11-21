@@ -53,6 +53,21 @@ dismiss_anr_dialog() {
 
 adb install -r "$apk" || fail "install failed"
 adb logcat -c || true
+
+# The emulator's launcher sometimes hangs at boot and its ANR dialog covers every app (run
+# 44880157966, API 35: still there after 8 dismissals). The launcher plays no part in this check,
+# so disable it while the smoke runs and restore it afterwards.
+home=$(adb shell cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME 2>/dev/null | tr -d '\r' | tail -n 1)
+home_pkg=${home%%/*}
+case "$home_pkg" in
+    "" | android | com.android.settings | *" "*) home_pkg="" ;;
+esac
+if [ -n "$home_pkg" ]; then
+    echo "release smoke: disabling launcher $home_pkg for the smoke run"
+    adb shell pm disable-user --user 0 "$home_pkg" >/dev/null 2>&1 || true
+    trap 'adb shell pm enable --user 0 "$home_pkg" >/dev/null 2>&1 || true' EXIT
+fi
+
 adb shell am start -W -n "$pkg/.MainActivity" || fail "launch failed"
 
 found=0
