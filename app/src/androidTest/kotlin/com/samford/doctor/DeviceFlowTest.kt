@@ -1,5 +1,6 @@
 package com.samford.doctor
 
+import android.Manifest
 import android.graphics.Bitmap
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.asAndroidBitmap
@@ -16,6 +17,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.rule.GrantPermissionRule
 import com.samford.doctor.sync.OutboxState
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -33,7 +35,11 @@ import java.io.File
  */
 @RunWith(AndroidJUnit4::class)
 class DeviceFlowTest {
-    @get:Rule
+    // The app asks for the notification permission after sign-in; the system dialog would pause the activity.
+    @get:Rule(order = 0)
+    val notifications: GrantPermissionRule = GrantPermissionRule.grant(Manifest.permission.POST_NOTIFICATIONS)
+
+    @get:Rule(order = 1)
     val compose = createAndroidComposeRule<MainActivity>()
 
     private val app get() = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as SamfordDoctorApplication

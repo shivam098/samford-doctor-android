@@ -61,6 +61,7 @@ jobs:
             mkdir -p artifacts
             adb shell "nohup screenrecord --time-limit 175 /sdcard/offline.mp4 > /dev/null 2>&1 &"
             ./gradlew --no-daemon :app:connectedDebugAndroidTest -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true || echo "offline run failed" > artifacts/offline.failed
+            cp -r app/build/outputs/androidTest-results artifacts/offline-test-results || true
             sleep 3; adb pull /sdcard/offline.mp4 artifacts/offline.mp4 || true
             adb pull /sdcard/Android/data/com.samford.doctor.debug/files/screens artifacts/offline-screens || true
             adb uninstall com.samford.doctor.debug || true
