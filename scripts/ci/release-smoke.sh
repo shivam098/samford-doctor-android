@@ -55,17 +55,18 @@ adb install -r "$apk" || fail "install failed"
 adb logcat -c || true
 
 # The emulator's launcher sometimes hangs at boot and its ANR dialog covers every app (run
-# 44880157966, API 35: still there after 8 dismissals). The launcher plays no part in this check,
-# so disable it while the smoke runs and restore it afterwards.
-home=$(adb shell cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME 2>/dev/null | tr -d '\r' | tail -n 1)
-home_pkg=${home%%/*}
-case "$home_pkg" in
-    "" | android | com.android.settings | *" "*) home_pkg="" ;;
-esac
-if [ -n "$home_pkg" ]; then
-    echo "release smoke: disabling launcher $home_pkg for the smoke run"
-    adb shell pm disable-user --user 0 "$home_pkg" >/dev/null 2>&1 || true
-    trap 'adb shell pm enable --user 0 "$home_pkg" >/dev/null 2>&1 || true' EXIT
+# 44880157966, API 35: still there after 8 dismissals). Home screens play no part in this check,
+# so disable every HOME package while the smoke runs (early in boot API 35 resolves HOME to a setup
+# app, not the launcher) and restore them afterwards.
+home_pkgs=$(adb shell cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.HOME 2>/dev/null |
+    tr -d '\r' | grep -oE '[A-Za-z0-9_.]+/[A-Za-z0-9_.$]+' | cut -d/ -f1 | grep -vxE 'android|com\.android\.settings' | sort -u | tr '\n' ' ')
+restore_home() {
+    for p in $home_pkgs; do adb shell pm enable --user 0 "$p" >/dev/null 2>&1 || true; done
+}
+if [ -n "${home_pkgs// /}" ]; then
+    echo "release smoke: disabling home packages for the smoke run: $home_pkgs"
+    for p in $home_pkgs; do adb shell pm disable-user --user 0 "$p" >/dev/null 2>&1 || true; done
+    trap restore_home EXIT
 fi
 
 adb shell am start -W -n "$pkg/.MainActivity" || fail "launch failed"
