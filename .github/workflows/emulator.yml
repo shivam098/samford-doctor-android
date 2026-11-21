@@ -14,8 +14,20 @@ env:
 
 jobs:
   instrumented:
+    name: ${{ matrix.name }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Shipping behaviour: the app picks the wet-ink path from the GPU's capabilities.
+          - { name: "API 34 SwiftShader GL, auto", api: 34, gpu: swiftshader_indirect, wetInk: auto }
+          # Discrimination: the same emulator with each wet-ink path forced.
+          - { name: "API 34 SwiftShader GL, low-latency forced", api: 34, gpu: swiftshader_indirect, wetInk: lowlatency }
+          - { name: "API 34 SwiftShader GL, standard forced", api: 34, gpu: swiftshader_indirect, wetInk: standard }
+          - { name: "API 34 ANGLE SwiftShader Vulkan, low-latency forced", api: 34, gpu: swangle_indirect, wetInk: lowlatency }
+          - { name: "API 35 SwiftShader GL, low-latency forced", api: 35, gpu: swiftshader_indirect, wetInk: lowlatency }
     steps:
       - uses: actions/checkout@v5
 
@@ -51,22 +63,24 @@ jobs:
       - name: Instrumented tests on a Pixel Tablet AVD (offline, then online)
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
+          api-level: ${{ matrix.api }}
           target: google_apis
           arch: x86_64
           profile: pixel_tablet
           disable-animations: true
-          emulator-options: -no-window -gpu swangle_indirect -noaudio -no-boot-anim -camera-back none
+          emulator-options: -no-window -gpu ${{ matrix.gpu }} -noaudio -no-boot-anim -camera-back none
           script: |
             mkdir -p artifacts
             adb shell "nohup screenrecord --time-limit 175 /sdcard/offline.mp4 > /dev/null 2>&1 &"
-            ./gradlew --no-daemon :app:connectedDebugAndroidTest -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true || echo "offline run failed" > artifacts/offline.failed
+            ./gradlew --no-daemon :app:connectedDebugAndroidTest -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true -Pandroid.testInstrumentationRunnerArguments.samfordWetInk=${{ matrix.wetInk }} || echo "offline run failed" > artifacts/offline.failed
             cp -r app/build/outputs/androidTest-results artifacts/offline-test-results || true
+            grep -rl "Fatal signal" artifacts/offline-test-results > artifacts/offline-native-crashes.txt || true
             sleep 3; adb pull /sdcard/offline.mp4 artifacts/offline.mp4 || true
             adb pull /sdcard/Android/data/com.samford.doctor.debug/files/screens artifacts/offline-screens || true
             adb uninstall com.samford.doctor.debug || true
             adb shell "nohup screenrecord --time-limit 175 /sdcard/online.mp4 > /dev/null 2>&1 &"
-            ./gradlew --no-daemon :app:connectedDebugAndroidTest -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true -Pandroid.testInstrumentationRunnerArguments.samfordApiBase=http://10.0.2.2:4320/api/mobile/v1 -Pandroid.testInstrumentationRunnerArguments.class=com.samford.doctor.DeviceFlowTest || echo "online run failed" > artifacts/online.failed
+            ./gradlew --no-daemon :app:connectedDebugAndroidTest -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true -Pandroid.testInstrumentationRunnerArguments.samfordApiBase=http://10.0.2.2:4320/api/mobile/v1 -Pandroid.testInstrumentationRunnerArguments.samfordWetInk=${{ matrix.wetInk }} -Pandroid.testInstrumentationRunnerArguments.class=com.samford.doctor.DeviceFlowTest || echo "online run failed" > artifacts/online.failed
+            grep -rl "Fatal signal" app/build/outputs/androidTest-results > artifacts/online-native-crashes.txt || true
             sleep 3; adb pull /sdcard/online.mp4 artifacts/online.mp4 || true
             adb pull /sdcard/Android/data/com.samford.doctor.debug/files/screens artifacts/online-screens || true
             test ! -f artifacts/offline.failed && test ! -f artifacts/online.failed
@@ -74,7 +88,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: emulator-results
+          name: emulator-api${{ matrix.api }}-${{ matrix.gpu }}-${{ matrix.wetInk }}
           path: |
             artifacts/
             app/build/outputs/androidTest-results/

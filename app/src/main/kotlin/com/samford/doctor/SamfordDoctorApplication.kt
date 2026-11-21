@@ -21,6 +21,8 @@ open class SamfordDoctorApplication : Application() {
         container = createContainer()
         SyncNotifier.createChannel(this)
         container.appScope.launch {
+            // Probe the GPU once, off the main thread, before the first writing screen needs it.
+            com.samford.doctor.ui.write.InkCapability.report()
             container.restore()
             // Finish any completion a crash or reboot interrupted, then upload what is waiting.
             container.freezer.resumeInterrupted()

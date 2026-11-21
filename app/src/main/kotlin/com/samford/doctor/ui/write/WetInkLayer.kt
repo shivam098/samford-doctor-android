@@ -39,7 +39,7 @@ interface WetInkLayer {
 
     companion object {
         fun create(context: Context, viewport: Viewport): WetInkLayer {
-            if (!JetpackInkWetLayer.isSupported()) return FallbackWetLayer(context, viewport)
+            if (!JetpackInkWetLayer.isSupported() || !InkCapability.useLowLatency()) return FallbackWetLayer(context, viewport)
             return try {
                 JetpackInkWetLayer(context)
             } catch (t: Throwable) {

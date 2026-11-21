@@ -40,6 +40,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.samford.doctor.AppContainer
 import com.samford.doctor.BuildConfig
+import androidx.compose.ui.platform.testTag
+import com.samford.doctor.ui.write.InkCapability
 import com.samford.doctor.MainActivity
 import com.samford.doctor.R
 import com.samford.doctor.ink.InkFormat
@@ -115,6 +117,10 @@ fun SettingsScreen(vm: AppViewModel, container: AppContainer) {
                     Text(stringResource(R.string.settings_about), fontWeight = FontWeight.SemiBold)
                     Text("Samford Doctor ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
                     Text(stringResource(R.string.settings_ink_format, InkFormat.FORMAT, InkFormat.RENDERER))
+                    Text(
+                        stringResource(if (InkCapability.useLowLatency()) R.string.settings_ink_path_low_latency else R.string.settings_ink_path_standard),
+                        modifier = Modifier.testTag("ink-path"),
+                    )
                     Text(stringResource(R.string.synthetic_banner), style = MaterialTheme.typography.bodySmall)
                 }
             }

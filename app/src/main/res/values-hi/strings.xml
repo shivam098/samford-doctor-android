@@ -203,6 +203,8 @@
     <string name="settings_sign_out_note">साइन आउट करने से अपलोड की प्रतीक्षा कर रही विज़िट कभी नहीं मिटतीं।</string>
     <string name="settings_about">जानकारी</string>
     <string name="settings_ink_format">इंक रिकॉर्ड: %1$s · रेंडरर %2$s</string>
+    <string name="settings_ink_path_low_latency">पेन इंक: कम विलंब (फ्रंट-बफ़र्ड GPU रेंडरिंग)</string>
+    <string name="settings_ink_path_standard">पेन इंक: सामान्य (इस डिवाइस पर कम विलंब वाली GPU रेंडरिंग उपलब्ध नहीं है)</string>
 
     <string name="notif_channel_sync">अपलोड स्थिति</string>
     <string name="notif_title">Samford Doctor</string>

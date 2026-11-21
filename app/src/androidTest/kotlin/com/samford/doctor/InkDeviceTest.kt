@@ -22,17 +22,24 @@ import com.samford.doctor.render.PageCompositor
 import com.samford.doctor.render.PageRasterizer
 import com.samford.doctor.render.PageSpec
 import com.samford.doctor.ui.write.InkSurfaceView
+import com.samford.doctor.ui.write.InkCapability
 import com.samford.doctor.ui.write.SurfaceListener
+import org.junit.Before
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.concurrent.CopyOnWriteArrayList
 
-/** On a real Android runtime: Jetpack Ink low-latency path, stylus injection and render determinism. */
+/** On a real Android runtime: wet-ink path choice, stylus injection and render determinism. */
 @RunWith(AndroidJUnit4::class)
 class InkDeviceTest {
     private val header = PageHeader("Device Test (Synthetic)", "30 / F", "DEMO-T", "21 Nov 2026", "1", "V-T", "Dr Test", "MBBS", "T-1", "Medicine", "None recorded", false, "—", true)
+
+    @Before
+    fun wetInkMode() {
+        InkCapability.mode = wetInkModeArgument()
+    }
 
     private class Harness(val scenario: ActivityScenario<ComponentActivity>, val view: InkSurfaceView, val strokes: List<InkStroke>)
 
@@ -96,13 +103,25 @@ class InkDeviceTest {
     }
 
     @Test
-    fun jetpackInkPathTakesStylusInputAndHandsOffToTheDryLayer() {
+    fun wetInkPathFollowsTheDeviceCapability() {
+        val report = InkCapability.report()
+        println("InkCapability mode=${InkCapability.mode} report=$report")
         val h = launch()
         try {
-            h.scenario.onActivity { assertTrue("Jetpack Ink should be active on a device", h.view.isLowLatencyInk) }
+            // Low-latency where the GPU supports hardware front-buffering; the standard path otherwise.
+            h.scenario.onActivity { assertEquals(report.toString(), InkCapability.useLowLatency(), h.view.isLowLatencyInk) }
+        } finally {
+            close(h)
+        }
+    }
+
+    @Test
+    fun stylusStrokeIsCommittedAndHandedToTheDryLayer() {
+        val h = launch()
+        try {
             penStroke(h)
             assertEquals(1, h.strokes.size)
-            // The wet stroke is handed to the dry layer once Jetpack Ink finishes it.
+            // The wet stroke is handed to the dry layer once the wet path finishes it.
             assertTrue("wet stroke never handed off", waitForHandOff(h))
         } finally {
             close(h)

@@ -63,6 +63,12 @@ class DeviceFlowTest {
         if (apiBase == null) shell("cmd connectivity airplane-mode disable")
     }
 
+    @org.junit.Before
+    fun wetInkMode() {
+        // Set before the writing surface is created; the activity only shows sign-in at this point.
+        com.samford.doctor.ui.write.InkCapability.mode = wetInkModeArgument()
+    }
+
     private fun waitForTag(tag: String, timeoutMs: Long = 30_000) =
         compose.waitUntil(timeoutMs) { compose.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes().isNotEmpty() }
 
@@ -90,7 +96,8 @@ class DeviceFlowTest {
             compose.onNodeWithText("Check again").performClick()
         }
         val persona = if (apiBase != null) "persona-doctor-a" else "persona-demo-dr-asha"
-        compose.waitUntil(30_000) {
+        // A server check can take a few seconds per address (discovery, then the last good one).
+        compose.waitUntil(60_000) {
             compose.onAllNodes(hasTestTag(persona)).fetchSemanticsNodes().isNotEmpty()
         }
         shot("01-sign-in")

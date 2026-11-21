@@ -60,8 +60,15 @@ class HttpMobileApi(
      * Executes [request] and runs [handle] on the IO dispatcher: reading a response body is network
      * I/O too, so it must never happen on the caller's (often main) thread.
      */
-    private suspend fun <R> call(request: Request, handle: (Response) -> R): R = try {
-        runInterruptible(Dispatchers.IO) { client.newCall(request).execute().use(handle) }
+    private suspend fun <R> call(request: Request, handle: (Response) -> R): R = call(request, client, handle)
+
+    /** Discovery and /meta probes fail fast, so "Check again" answers within seconds when offline. */
+    private val probeClient: OkHttpClient by lazy {
+        client.newBuilder().connectTimeout(5, TimeUnit.SECONDS).callTimeout(8, TimeUnit.SECONDS).build()
+    }
+
+    private suspend fun <R> call(request: Request, using: OkHttpClient, handle: (Response) -> R): R = try {
+        runInterruptible(Dispatchers.IO) { using.newCall(request).execute().use(handle) }
     } catch (e: IOException) {
         onUnreachable(request.url.toString())
         throw ApiException(PlainErrors.network())
@@ -96,11 +103,16 @@ class HttpMobileApi(
     override suspend fun discover(discoveryUrl: String): DiscoveryDoc {
         val u = discoveryUrl.toHttpUrlOrNull() ?: throw ApiException(PlainErrors.noServer)
         // Discovery lives on a CDN that caches for minutes; never send credentials there.
-        return send(Request.Builder().url(u).header("Accept", "application/json").get().build(), DiscoveryDoc.serializer())
+        val request = Request.Builder().url(u).header("Accept", "application/json").get().build()
+        return call(request, probeClient) { response ->
+            val body = response.body.string()
+            if (!response.isSuccessful) throw ApiException(errorFrom(response, body))
+            decode(body, DiscoveryDoc.serializer(), response.code)
+        }
     }
 
     override suspend fun meta(apiBase: String) {
-        call(request(url("/meta", apiBase), auth = false).get().build()) { response ->
+        call(request(url("/meta", apiBase), auth = false).get().build(), probeClient) { response ->
             if (!response.isSuccessful) throw ApiException(errorFrom(response, response.body.string()))
         }
     }
