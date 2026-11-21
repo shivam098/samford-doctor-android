@@ -83,7 +83,7 @@ recorded `dumpsys meminfo` (CSV in the run's artifacts). Result: **no leak**.
 | Activities / ViewRootImpl (all 47 steps) | 1 / 1 | 1 / 1 |
 | New activity instances from 20 rotations | 0 (the manifest handles orientation and screen size) | 0 |
 | MainActivity instances created / still reachable after GC | 21 / 0 besides the current one | 21 / 0 |
-| Java heap: after rotations → after 20 recreations → final | 12.3 → 12.3 → 12.3 MB (+32 KB since the first recreation) | 13.9 → 13.9 → 14.0 MB (+116 KB) |
+| Java heap: after rotations → after 20 recreations → final | 12.1 → 12.0 → 12.0 MB (+32 KB since the first recreation) | 13.6 → 13.5 → 13.7 MB (+116 KB) |
 | Native heap: first recreation → final | 37.8 → 34.5 MB | 31.5 → 33.1 MB |
 | Total PSS: baseline → final | 149 → 132 MB | 155 → 147 MB |
 
