@@ -74,21 +74,32 @@ jobs:
           script: |
             mkdir -p artifacts
             bash scripts/ci/release-smoke.sh release-smoke.apk artifacts || echo "release smoke: script exited non-zero" >> artifacts/release.failed
+            nohup bash scripts/ci/stall-watchdog.sh offline artifacts 900 > artifacts/watchdog-offline.log 2>&1 < /dev/null &
             adb shell "nohup screenrecord --time-limit 175 /sdcard/offline.mp4 > /dev/null 2>&1 &"
-            ./gradlew --no-daemon :app:connectedDebugAndroidTest -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true -Pandroid.testInstrumentationRunnerArguments.samfordWetInk=${{ matrix.wetInk }} || echo "offline run failed" >> artifacts/offline.failed
+            ./gradlew --no-daemon :app:connectedDebugAndroidTest -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true -Pandroid.testInstrumentationRunnerArguments.samfordWetInk=${{ matrix.wetInk }} -Pandroid.testInstrumentationRunnerArguments.notClass=com.samford.doctor.RecreationMemoryTest || echo "offline run failed" >> artifacts/offline.failed
+            touch artifacts/offline.done
             cp -r app/build/outputs/androidTest-results artifacts/offline-test-results || true
             grep -rl "Fatal signal" artifacts/offline-test-results > artifacts/offline-native-crashes.txt || true
             sleep 3; adb pull /sdcard/offline.mp4 artifacts/offline.mp4 || true
             adb pull /sdcard/Android/data/com.samford.doctor.debug/files/screens artifacts/offline-screens || true
+            nohup bash scripts/ci/stall-watchdog.sh memory artifacts 900 > artifacts/watchdog-memory.log 2>&1 < /dev/null &
+            ./gradlew --no-daemon :app:connectedDebugAndroidTest -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true -Pandroid.testInstrumentationRunnerArguments.samfordWetInk=${{ matrix.wetInk }} -Pandroid.testInstrumentationRunnerArguments.class=com.samford.doctor.RecreationMemoryTest || echo "recreation memory run failed" >> artifacts/memory.failed
+            touch artifacts/memory.done
+            cp -r app/build/outputs/androidTest-results artifacts/memory-test-results || true
+            adb pull /sdcard/Android/data/com.samford.doctor.debug/files/memory artifacts/memory || true
+            adb pull /sdcard/Android/data/com.samford.doctor.debug/files/stall artifacts/stall-in-app || true
+            cat artifacts/memory/recreation.csv || true
             adb uninstall com.samford.doctor.debug || true
+            nohup bash scripts/ci/stall-watchdog.sh online artifacts 900 > artifacts/watchdog-online.log 2>&1 < /dev/null &
             adb shell "nohup screenrecord --time-limit 175 /sdcard/online.mp4 > /dev/null 2>&1 &"
             ./gradlew --no-daemon :app:connectedDebugAndroidTest -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true -Pandroid.testInstrumentationRunnerArguments.samfordApiBase=http://10.0.2.2:4320/api/mobile/v1 -Pandroid.testInstrumentationRunnerArguments.samfordWetInk=${{ matrix.wetInk }} -Pandroid.testInstrumentationRunnerArguments.class=com.samford.doctor.DeviceFlowTest || echo "online run failed" >> artifacts/online.failed
+            touch artifacts/online.done
             grep -rl "Fatal signal" app/build/outputs/androidTest-results > artifacts/online-native-crashes.txt || true
             sleep 3; adb pull /sdcard/online.mp4 artifacts/online.mp4 || true
             adb pull /sdcard/Android/data/com.samford.doctor.debug/files/screens artifacts/online-screens || true
+            adb pull /sdcard/Android/data/com.samford.doctor.debug/files/stall artifacts/stall-in-app-online || true
             cat artifacts/*.failed 2>/dev/null || true
-            test ! -f artifacts/release.failed && test ! -f artifacts/offline.failed && test ! -f artifacts/online.failed
-
+            test ! -f artifacts/release.failed && test ! -f artifacts/offline.failed && test ! -f artifacts/memory.failed && test ! -f artifacts/online.failed
       - uses: actions/upload-artifact@v4
         if: always()
         with:

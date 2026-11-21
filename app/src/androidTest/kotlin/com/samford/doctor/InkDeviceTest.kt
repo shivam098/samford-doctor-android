@@ -25,6 +25,7 @@ import com.samford.doctor.ui.write.InkSurfaceView
 import com.samford.doctor.ui.write.InkCapability
 import com.samford.doctor.ui.write.SurfaceListener
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -34,6 +35,9 @@ import java.util.concurrent.CopyOnWriteArrayList
 /** On a real Android runtime: wet-ink path choice, stylus injection and render determinism. */
 @RunWith(AndroidJUnit4::class)
 class InkDeviceTest {
+    @get:Rule
+    val stall = StallDumpRule()
+
     private val header = PageHeader("Device Test (Synthetic)", "30 / F", "DEMO-T", "21 Nov 2026", "1", "V-T", "Dr Test", "MBBS", "T-1", "Medicine", "None recorded", false, "—", true)
 
     @Before

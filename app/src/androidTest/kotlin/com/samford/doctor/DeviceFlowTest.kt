@@ -37,6 +37,9 @@ import java.io.File
  */
 @RunWith(AndroidJUnit4::class)
 class DeviceFlowTest {
+    @get:Rule(order = -1)
+    val stall = StallDumpRule()
+
     // The app asks for the notification permission after sign-in; the system dialog would pause the activity.
     @get:Rule(order = 0)
     val notifications: GrantPermissionRule = GrantPermissionRule.grant(Manifest.permission.POST_NOTIFICATIONS)
