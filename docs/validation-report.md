@@ -16,10 +16,10 @@ behaviour; each claim names the test or command that showed it.
 
 | Command | Result |
 |---|---|
-| `gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest` with `SAMFORD_IT_API_BASE=http://127.0.0.1:4320/api/mobile/v1` | BUILD SUCCESSFUL; **67 tests, 0 failures, 2 skipped** (the env-gated fixture generator and cross-app producer) |
+| `gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest` with `SAMFORD_IT_API_BASE=http://127.0.0.1:4320/api/mobile/v1` | BUILD SUCCESSFUL; **69 tests, 0 failures, 2 skipped** (the env-gated fixture generator and cross-app producer) |
 | Same with `SAMFORD_E2E_OUT` set | `crossAppE2EProducer` passed against dffde17 |
 | Lint (`lintDebug`) | `No issues found.` |
-| `scripts/build-release.ps1` (R8, resource shrinking, Baseline Profile, signed) | RELEASE_ROW |
+| `scripts/build-release.ps1` at 3c1c1e6 (R8, resource shrinking, Baseline Profile, signed) | `samford-doctor-v0.1.0.apk`, 9,561,552 bytes, SHA-256 `5680e7464b72165aadbdb85373aabe02ce4979b1ba9d0fd72a9dfb3577ff94be`; `apksigner verify` OK (v2); certificate SHA-256 `bfa405d4b39ea308b5cb60538418a89b35ea35cadad27c20b57665692ba7f326` |
 | `aapt2 dump badging` | `com.samford.doctor`, versionCode 1, versionName 0.1.0, minSdk 33, targetSdk 36, not debuggable |
 | Live discovery (temporary read-only Robolectric check, removed after use) | the app's `ServerRepository` went `Online(source=DISCOVERY)` via the gist and loaded personas doctor-a/b/c from the live server |
 | Cross-app (patient app session, its CI) | the patient app found identical page SHA-256 lists, bytes and PDF hashes for every document the producer completed |
@@ -57,7 +57,32 @@ fail on the previous code and pass on the fix.
 
 ## GitHub Actions
 
-CI_RESULTS_PLACEHOLDER
+Final commit **3c1c1e6** (the release source):
+
+- [Android CI 44878227479](https://github.com/shivam098/samford-doctor-android/actions/runs/44878227479): success — build, lint, all JVM tests incl. the real-backend integration tests and the cross-app producer against dffde17, R8 release build.
+- [Tablet emulator tests 44878227590](https://github.com/shivam098/samford-doctor-android/actions/runs/44878227590): success on **API 34 and API 35** Pixel Tablet AVDs, shipping (automatic) ink path, **0 native crashes** in all logcats:
+  - R8 release smoke: the minified release (debug-key signed in CI) launched, found the live server through discovery and listed Demo doctors A/B/C; no crash in its process.
+  - Offline journey in airplane mode: sign in → signature → queue → write → **activity relaunch with the stamp sheet open** → **background right after a stroke and return** → review → complete → saved on tablet.
+  - Ink device tests: chosen wet-ink path matches the device capability; a stylus stroke is committed and handed to the dry layer; on-device render determinism.
+  - Online journey against backend dffde17: the same steps, then the visit reaches **Received by hospital** with per-recipient status.
+
+### Emulator renderer crash: discrimination (run [44871826624](https://github.com/shivam098/samford-doctor-android/actions/runs/44871826624))
+
+Earlier runs crashed intermittently with `SIGSEGV` on `RenderThread` in `libhwui DrawFrameTask::run()`
+(fault addr 0x5c20), including in a test with no lifecycle change. Same suite, five configurations:
+
+| Emulator GPU / image | Wet-ink path | Offline journey | Ink tests | Online journey | Native crash |
+|---|---|---|---|---|---|
+| SwiftShader GL, API 34 | automatic (picked standard) | pass | 3/3 pass | pass | none |
+| SwiftShader GL, API 34 | standard forced | pass | 3/3 pass | pass | none |
+| SwiftShader GL, API 34 | low-latency forced | hung (renderer; job killed at 60 min) | not reached | not reached | renderer hang |
+| ANGLE on SwiftShader Vulkan, API 34 | low-latency forced | fail | 3/3 pass | crash | `DrawFrameTask::run()+966` |
+| SwiftShader GL, API 35 | low-latency forced | pass | stroke test crash | pass | `DrawFrameTask::postAndWait` |
+
+The fault follows the front-buffered (Jetpack Ink) layer across GPU back-ends and system images and
+never appears on the standard path, so it is treated as an emulator software-GPU limitation. On these
+emulators the capability probe reports `front buffer=false`, `renderer=Android Emulator OpenGL ES
+Translator (Google SwiftShader)` (or ANGLE … SwiftShader), and the app picks the standard path.
 
 ## Not verified (needs a physical Samsung Galaxy Tab with S Pen)
 
@@ -65,7 +90,7 @@ CI_RESULTS_PLACEHOLDER
 - Palm rejection while resting the hand, S Pen side-button erase and hover cursor on Samsung firmware
   (logic is unit-tested with synthetic MotionEvents).
 - App lock with a real biometric/PIN; notifications on One UI; install via "Install unknown apps".
-- **Jetpack Ink front-buffered rendering stability**: see the emulator note above. EMULATOR_NOTE
+- **The low-latency (front-buffered) ink path has not run on any hardware yet.** Emulators only have software GPUs, so CI exercises the standard path. On the Galaxy Tab, Settings → About must say "Pen ink: low-latency"; then judge S Pen latency, and repeat item 4 below to check the front-buffered layer survives app switches.
 
 ### Suggested on-device checklist
 
